@@ -46,16 +46,27 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ passcode })
         });
-        
+
+        // Guard: check response is JSON before parsing
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          throw new Error('Server is not running. Start it with: node server.js');
+        }
+
         const data = await res.json();
         if (data.success) {
           sessionStorage.setItem('klu_admin_token', data.token);
           window.location.href = 'controller-dashboard.html';
         } else {
-          throw new Error('Invalid passcode');
+          throw new Error('Invalid passcode. Please try again.');
         }
       } catch (err) {
-        errorMsg.innerText = err.message;
+        // Handle network error (server completely down)
+        if (err.name === 'TypeError' && err.message.includes('fetch')) {
+          errorMsg.innerText = 'Cannot connect to server. Make sure node server.js is running.';
+        } else {
+          errorMsg.innerText = err.message;
+        }
         errorMsg.style.display = 'block';
       } finally {
         btn.classList.remove('loading');
