@@ -21,6 +21,9 @@ const QRCode  = require('qrcode');
 const path    = require('path');
 const fs      = require('fs').promises;
 
+// Load .env if present
+try { require('dotenv').config(); } catch (_) {}
+
 // ---------------------------------------------------------------------------
 // App Initialisation
 // ---------------------------------------------------------------------------
@@ -29,7 +32,7 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 
 // Hardcoded Admin Passcode for /controller
-const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || 'admin123';
+const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || 'b10xCLUB';
 
 const EXCEL_FILE = path.join(__dirname, 'registrations.xlsx');
 const EVENTS_FILE = path.join(__dirname, 'events.json');
