@@ -1,0 +1,24 @@
+{
+  "name": "10x-event-hub",
+  "version": "1.0.0",
+  "description": "Event management website for the 10X Club at KL University. Features academic login, delegate registration, UPI payment, QR ticket generation, and Excel data mapping.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "event-management",
+    "klu",
+    "10x-club",
+    "qr-ticket",
+    "express"
+  ],
+  "author": "10X Club KLU",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "exceljs": "^4.4.0",
+    "qrcode": "^1.5.3"
+  }
+}
