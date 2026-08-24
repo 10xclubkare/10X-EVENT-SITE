@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!--
+    =========================================================================
+    10X Event Hub — Ticket / Event Pass Page
+    =========================================================================
+    PURPOSE : Displays a premium digital event pass with a QR code containing
+              all registration details (name, email, txnId).
+    FLOW    : Reads ticket_qr and ticket_data from sessionStorage →
+              renders attendee info + QR code in a pass layout.
+    QR DATA : The QR encodes a JSON payload: { name, email, txnId, valid }.
+              Scanning at the registration desk verifies entry.
+    GUARD   : Redirects to index.html if no ticket data is found.
+    =========================================================================
+  -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Your official 10X Club event pass. Present this QR code at the venue for entry.">
+  <title>10X Event Hub | Your Event Pass</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <canvas class="particles-canvas" id="particlesCanvas"></canvas>
+
+  <!-- ======================== TICKET / EVENT PASS ======================== -->
+  <div class="ticket-shell" id="ticketPass">
+
+    <!-- ---- Left: Attendee Details ---- -->
+    <div class="ticket-left">
+      <div class="ticket-event-tag">Official Pass</div>
+      <div class="ticket-event-name">10X Club<br>Event 2025</div>
+
+      <div class="ticket-grid">
+        <div class="ticket-field">
+          <label>Attendee Name</label>
+          <p id="tName">—</p>
+        </div>
+        <div class="ticket-field">
+          <label>Academic Email</label>
+          <p id="tEmail">—</p>
+        </div>
+        <div class="ticket-field">
+          <label>Transaction ID</label>
+          <p id="tTxn">—</p>
+        </div>
+        <div class="ticket-field">
+          <label>Access Status</label>
+          <div class="ticket-status">Verified</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- Right: QR Stub ---- -->
+    <div class="ticket-right">
+      <div class="ticket-qr">
+        <img id="ticketQr" alt="Event Access QR Code" />
+      </div>
+      <div class="ticket-scan-text">
+        Scan at the registration<br>desk for venue entry
+      </div>
+    </div>
+  </div>
+
+  <!-- Print / Download button -->
+  <button class="print-action" id="printBtn" onclick="window.print()">
+    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"></path>
+    </svg>
+    Download / Print Pass
+  </button>
+
+  <!-- ======================== SCRIPTS ======================== -->
+  <script>
+    /**
+     * Particles animation.
+     */
+    (function initParticles() {
+      const canvas = document.getElementById('particlesCanvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+      const COUNT = 60;
+      function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+      function create() {
+        return {
+          x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+          r: Math.random() * 1.5 + 0.5,
+          dx: (Math.random() - 0.5) * 0.4, dy: (Math.random() - 0.5) * 0.4,
+          o: Math.random() * 0.5 + 0.1
+        };
+      }
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+          p.x += p.dx; p.y += p.dy;
+          if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+          if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(108,99,255,${p.o})`; ctx.fill();
+        });
+        requestAnimationFrame(draw);
+      }
+      resize(); addEventListener('resize', resize);
+      for (let i = 0; i < COUNT; i++) particles.push(create());
+      draw();
+    })();
+
+    /**
+     * Ticket Data Renderer
+     * Reads QR code image and attendee data from sessionStorage.
+     * Redirects to login if no data is found.
+     */
+    const qr      = sessionStorage.getItem('ticket_qr');
+    const dataStr  = sessionStorage.getItem('ticket_data');
+
+    if (!qr || !dataStr) {
+      window.location.href = 'index.html';
+    } else {
+      const data = JSON.parse(dataStr);
+      document.getElementById('tName').innerText  = data.name  || '—';
+      document.getElementById('tEmail').innerText  = data.email || '—';
+      document.getElementById('tTxn').innerText    = data.txnId || '—';
+      document.getElementById('ticketQr').src      = qr;
+    }
+  </script>
+</body>
+</html>
