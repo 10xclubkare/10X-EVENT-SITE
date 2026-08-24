@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!--
+    =========================================================================
+    10X Event Hub — Login Page
+    =========================================================================
+    PURPOSE : Authenticates students using their KLU academic email.
+    FLOW    : User enters email → client validates @klu.ac.in domain →
+              server confirms → redirects to register.html.
+    SECURITY: Domain-restricted to @klu.ac.in emails only.
+    =========================================================================
+  -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="KLU 10X Club Event Hub – Secure login portal for KL University students to register for campus events.">
+  <title>10X Event Hub | Student Login</title>
+
+  <!-- Google Font: Outfit — geometric sans-serif for premium feel -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Shared Design System -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Particle animation canvas (rendered by JS) -->
+  <canvas class="particles-canvas" id="particlesCanvas"></canvas>
+
+  <!-- ======================== LOGIN CARD ======================== -->
+  <div class="glass-card" id="loginCard">
+
+    <!-- Branding -->
+    <div class="brand">
+      <div class="brand-logo">10X</div>
+      <h1>Event Hub</h1>
+      <p>Sign in with your KLU academic email to access exclusive campus events.</p>
+    </div>
+
+    <!-- Login Form -->
+    <form id="loginForm" novalidate>
+      <div class="form-group">
+        <label for="email">Academic Email</label>
+        <input
+          type="email"
+          id="email"
+          placeholder="yourname@klu.ac.in"
+          required
+          autocomplete="email"
+          aria-describedby="emailHint"
+        />
+        <span class="input-hint" id="emailHint">@klu.ac.in</span>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="loginBtn">
+        Verify &amp; Continue
+      </button>
+
+      <!-- Error alert (hidden by default) -->
+      <div id="errorMsg" class="alert alert-error" role="alert"></div>
+    </form>
+  </div>
+
+  <!-- ======================== SCRIPTS ======================== -->
+  <script>
+    /**
+     * --------------------------------------------------------------------
+     * Floating Particles — lightweight canvas animation
+     * Creates a subtle, animated starfield behind the glass card.
+     * --------------------------------------------------------------------
+     */
+    (function initParticles() {
+      const canvas = document.getElementById('particlesCanvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+      const PARTICLE_COUNT = 60;
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+
+      function createParticle() {
+        return {
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          radius: Math.random() * 1.5 + 0.5,
+          dx: (Math.random() - 0.5) * 0.4,
+          dy: (Math.random() - 0.5) * 0.4,
+          opacity: Math.random() * 0.5 + 0.1
+        };
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+          p.x += p.dx;
+          p.y += p.dy;
+          if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+          if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(108, 99, 255, ${p.opacity})`;
+          ctx.fill();
+        });
+        requestAnimationFrame(animate);
+      }
+
+      resize();
+      window.addEventListener('resize', resize);
+      for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(createParticle());
+      animate();
+    })();
+
+    /**
+     * --------------------------------------------------------------------
+     * Login Form Handler
+     * - Validates @klu.ac.in domain on the client side first.
+     * - Sends POST /api/login to the server for confirmation.
+     * - On success, stores email in sessionStorage and redirects.
+     * --------------------------------------------------------------------
+     */
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const emailInput = document.getElementById('email');
+      const errorMsg   = document.getElementById('errorMsg');
+      const btn        = document.getElementById('loginBtn');
+      const email      = emailInput.value.trim().toLowerCase();
+
+      // Reset error state
+      errorMsg.style.display = 'none';
+
+      // Client-side domain check
+      if (!email.endsWith('@klu.ac.in')) {
+        errorMsg.innerText = 'Only @klu.ac.in academic emails are allowed.';
+        errorMsg.style.display = 'block';
+        emailInput.focus();
+        return;
+      }
+
+      // Show loading state
+      btn.classList.add('loading');
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          sessionStorage.setItem('klu_user_email', email);
+          window.location.href = 'register.html';
+        } else {
+          throw new Error(data.message || 'Only @klu.ac.in emails allowed.');
+        }
+      } catch (err) {
+        errorMsg.innerText = err.message;
+        errorMsg.style.display = 'block';
+      } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
