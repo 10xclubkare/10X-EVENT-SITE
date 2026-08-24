@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!--
+    =========================================================================
+    10X Event Hub — Registration Page
+    =========================================================================
+    PURPOSE : Collects delegate details (name, phone) after email verification.
+    FLOW    : Pre-fills verified email from sessionStorage → user enters
+              name + phone → data stored in sessionStorage → redirects
+              to payment.html.
+    GUARD   : Redirects to index.html if no verified email is found.
+    =========================================================================
+  -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Register as a delegate for KLU 10X Club events. Provide your details to proceed to payment.">
+  <title>10X Event Hub | Delegate Registration</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <canvas class="particles-canvas" id="particlesCanvas"></canvas>
+
+  <!-- ======================== REGISTRATION CARD ======================== -->
+  <div class="glass-card" id="regCard">
+
+    <!-- Step indicator -->
+    <div class="step-badge">Step 1 of 2</div>
+
+    <!-- Branding -->
+    <div class="brand">
+      <div class="brand-logo">10X</div>
+      <h1>Delegate Details</h1>
+      <p>Fill in your information to reserve your spot at the event.</p>
+    </div>
+
+    <!-- Registration Form -->
+    <form id="regForm" novalidate>
+      <!-- Verified email (read-only) -->
+      <div class="form-group">
+        <label for="email">Verified Email</label>
+        <input type="email" id="email" disabled />
+      </div>
+
+      <!-- Full Name -->
+      <div class="form-group">
+        <label for="name">Full Name</label>
+        <input
+          type="text"
+          id="name"
+          placeholder="Enter your full name"
+          required
+          autocomplete="name"
+        />
+      </div>
+
+      <!-- Contact Number -->
+      <div class="form-group">
+        <label for="phone">Contact Number</label>
+        <input
+          type="tel"
+          id="phone"
+          placeholder="+91 98765 43210"
+          required
+          autocomplete="tel"
+        />
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="regBtn">
+        Proceed to Payment →
+      </button>
+    </form>
+  </div>
+
+  <!-- ======================== SCRIPTS ======================== -->
+  <script>
+    /**
+     * Particles — same lightweight canvas animation as login page.
+     */
+    (function initParticles() {
+      const canvas = document.getElementById('particlesCanvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+      const COUNT = 60;
+      function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+      function create() {
+        return {
+          x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+          r: Math.random() * 1.5 + 0.5,
+          dx: (Math.random() - 0.5) * 0.4, dy: (Math.random() - 0.5) * 0.4,
+          o: Math.random() * 0.5 + 0.1
+        };
+      }
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+          p.x += p.dx; p.y += p.dy;
+          if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+          if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(108,99,255,${p.o})`; ctx.fill();
+        });
+        requestAnimationFrame(draw);
+      }
+      resize(); addEventListener('resize', resize);
+      for (let i = 0; i < COUNT; i++) particles.push(create());
+      draw();
+    })();
+
+    /**
+     * Auth guard — redirect to login if no verified email exists.
+     */
+    const userEmail = sessionStorage.getItem('klu_user_email');
+    if (!userEmail) {
+      window.location.href = 'index.html';
+    } else {
+      document.getElementById('email').value = userEmail;
+    }
+
+    /**
+     * Registration Form Handler
+     * Stores name and phone in sessionStorage, then redirects to payment.
+     */
+    document.getElementById('regForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const name  = document.getElementById('name').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+
+      if (!name || !phone) return;
+
+      sessionStorage.setItem('reg_name', name);
+      sessionStorage.setItem('reg_phone', phone);
+      window.location.href = 'payment.html';
+    });
+  </script>
+</body>
+</html>
