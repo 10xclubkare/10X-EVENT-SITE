@@ -1,47 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!--
-    =========================================================================
-    10X Event Hub — Login Page
-    =========================================================================
-    PURPOSE : Authenticates students using their KLU academic email.
-    FLOW    : User enters email → client validates @klu.ac.in domain →
-              server confirms → redirects to register.html.
-    SECURITY: Domain-restricted to @klu.ac.in emails only.
-    =========================================================================
-  -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="KLU 10X Club Event Hub – Secure login portal for KL University students to register for campus events.">
-  <title>10X Event Hub | Student Login</title>
-
-  <!-- Google Font: Outfit — geometric sans-serif for premium feel -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-
-  <!-- Shared Design System -->
+  <meta name="description" content="10X Event Hub - Secure login for students">
+  <title>10X Event Hub | Login</title>
   <link rel="stylesheet" href="styles.css">
+  
+  <script>
+    // Theme setup
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
 </head>
 <body>
-
-  <!-- Particle animation canvas (rendered by JS) -->
-  <canvas class="particles-canvas" id="particlesCanvas"></canvas>
-
-  <!-- ======================== LOGIN CARD ======================== -->
-  <div class="glass-card" id="loginCard">
-
-    <!-- Branding -->
-    <div class="brand">
-      <div class="brand-logo">10X</div>
-      <h1>Event Hub</h1>
-      <p>Sign in with your KLU academic email to access exclusive campus events.</p>
+  
+  <nav class="navbar">
+    <a href="#" class="brand-logo">10X Event Hub</a>
+    <div class="nav-actions">
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle Dark Mode">
+        <svg id="moonIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        <svg id="sunIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+      </button>
     </div>
+  </nav>
 
-    <!-- Login Controls -->
-    <div style="text-align: center;">
-      <button class="btn btn-primary" id="googleLoginBtn" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+  <div class="container slide-up">
+    <div class="card text-center" style="margin-top: 60px;">
+      <h1 style="font-size: 2rem; margin-bottom: 8px;">Welcome back.</h1>
+      <p style="margin-bottom: 32px;">Sign in with your KLU academic email to view and register for upcoming events.</p>
+      
+      <button class="btn btn-primary" id="googleLoginBtn" style="display: flex; align-items: center; justify-content: center; gap: 10px; background-color: var(--surface-color); color: var(--text-primary); border: 1px solid var(--border-color);">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
           <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -51,67 +40,41 @@
         Sign in with Google
       </button>
 
-      <!-- Error alert (hidden by default) -->
-      <div id="errorMsg" class="alert alert-error" role="alert"></div>
+      <div id="errorMsg" class="alert alert-error mt-4" style="display: none;" role="alert"></div>
     </div>
   </div>
 
-  <!-- ======================== SCRIPTS ======================== -->
   <script>
-    /**
-     * --------------------------------------------------------------------
-     * Floating Particles — lightweight canvas animation
-     * --------------------------------------------------------------------
-     */
-    (function initParticles() {
-      const canvas = document.getElementById('particlesCanvas');
-      const ctx = canvas.getContext('2d');
-      let particles = [];
-      const PARTICLE_COUNT = 60;
-
-      function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+    // Theme toggler
+    const themeToggle = document.getElementById('themeToggle');
+    const moonIcon = document.getElementById('moonIcon');
+    const sunIcon = document.getElementById('sunIcon');
+    
+    function updateIcons(theme) {
+      if (theme === 'dark') {
+        moonIcon.classList.add('hidden');
+        sunIcon.classList.remove('hidden');
+      } else {
+        sunIcon.classList.add('hidden');
+        moonIcon.classList.remove('hidden');
       }
-
-      function createParticle() {
-        return {
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          radius: Math.random() * 1.5 + 0.5,
-          dx: (Math.random() - 0.5) * 0.4,
-          dy: (Math.random() - 0.5) * 0.4,
-          opacity: Math.random() * 0.5 + 0.1
-        };
-      }
-
-      function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        particles.forEach(p => {
-          p.x += p.dx;
-          p.y += p.dy;
-          if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
-          if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(108, 99, 255, ${p.opacity})`;
-          ctx.fill();
-        });
-        requestAnimationFrame(animate);
-      }
-
-      resize();
-      window.addEventListener('resize', resize);
-      for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(createParticle());
-      animate();
-    })();
+    }
+    
+    updateIcons(savedTheme);
+    
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateIcons(newTheme);
+    });
   </script>
 
   <!-- Firebase Integration -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDMwHy3Hf9qreuY4tVKO8no5-tOTj8Vv44",
@@ -119,27 +82,11 @@
       projectId: "x-club-856c2",
       storageBucket: "x-club-856c2.firebasestorage.app",
       messagingSenderId: "779560119861",
-      appId: "1:779560119861:web:b6ab42b6f03172a87c8b7c",
-      measurementId: "G-HYTTPR3R9Z"
+      appId: "1:779560119861:web:b6ab42b6f03172a87c8b7c"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
     const auth = getAuth(app);
-
-    /**
-     * Google OAuth Provider Configuration
-     * ------------------------------------
-     * - client_id : GCP OAuth 2.0 Client ID (public, safe for frontend)
-     * - hd        : Hosted domain hint — tells Google's login screen to
-     *               default to @klu.ac.in accounts. This is a UI hint only;
-     *               the actual domain enforcement happens after sign-in below.
-     *
-     * NOTE: The Client Secret (GOCSPX-...) must NEVER be placed in frontend
-     *       code. It is configured in:
-     *       Firebase Console → Authentication → Sign-in method → Google
-     */
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({
       client_id: '1094391287137-iglk30ai0j94eif66hb1kvegqptqob2v.apps.googleusercontent.com',
@@ -158,13 +105,11 @@
         const result = await signInWithPopup(auth, provider);
         const email = result.user.email.toLowerCase();
 
-        // Verify the domain — hard enforcement (not just a hint)
         if (!email.endsWith('@klu.ac.in')) {
           await signOut(auth);
           throw new Error('Access denied. Please use your @klu.ac.in academic email.');
         }
 
-        // Try to verify with our backend server (graceful — won't block if server is down)
         try {
           const res = await fetch('/api/login', {
             method: 'POST',
@@ -172,29 +117,22 @@
             body: JSON.stringify({ email })
           });
 
-          if (!res.ok) {
-            console.warn('Server returned status', res.status, '— proceeding with Firebase auth only.');
-          } else {
+          if (res.ok) {
             const data = await res.json();
             if (!data.success) {
               console.warn('Server rejected login:', data.message);
             }
           }
         } catch (serverErr) {
-          // Server is unreachable or returned non-JSON — that's fine,
-          // Firebase auth already verified the user.
           console.warn('Backend server unavailable — proceeding with Firebase auth only.');
         }
 
-        // Firebase verified + domain checked → allow entry
         sessionStorage.setItem('klu_user_email', email);
-        window.location.href = 'register.html';
+        // Route to User Dashboard
+        window.location.href = 'dashboard.html';
 
       } catch (err) {
-        // Only show errors from Firebase/domain check, not server connectivity
-        if (err.code === 'auth/popup-closed-by-user') {
-          // User closed the popup — no error needed
-        } else {
+        if (err.code !== 'auth/popup-closed-by-user') {
           errorMsg.innerText = err.message || 'Authentication failed. Please try again.';
           errorMsg.style.display = 'block';
         }

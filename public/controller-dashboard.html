@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>10X Event Hub | Controller Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  
+  <script>
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    // Protect route
+    if (!sessionStorage.getItem('klu_admin_token')) {
+      window.location.href = 'controller.html';
+    }
+  </script>
+</head>
+<body>
+  
+  <nav class="navbar">
+    <a href="controller-dashboard.html" class="brand-logo">10X Controller</a>
+    <div class="nav-actions">
+      <span class="user-badge" style="background-color: rgba(255, 59, 48, 0.1); color: var(--error-color);">Admin</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle Dark Mode">
+        <svg id="moonIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        <svg id="sunIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+      </button>
+      <button id="logoutBtn" class="btn btn-secondary" style="padding: 8px 16px; width: auto; font-size: 0.875rem;">Exit</button>
+    </div>
+  </nav>
+
+  <div class="container slide-up" style="max-width: 900px;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+      <h2>System Overview</h2>
+      <a href="/api/registrations/download" class="btn btn-primary" style="width: auto;" target="_blank">📥 Download Master Data</a>
+    </div>
+
+    <!-- Create Event Card -->
+    <div class="card" style="max-width: 100%; margin-bottom: 40px;">
+      <h3>Create New Event</h3>
+      <p>Publish a new event to the student dashboard.</p>
+      
+      <form id="createEventForm" class="mt-4">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div class="form-group">
+            <label for="eventTitle">Event Title</label>
+            <input type="text" id="eventTitle" required placeholder="e.g. Farm Fusion Hackathon">
+          </div>
+          <div class="form-group">
+            <label for="eventDate">Date & Time</label>
+            <input type="text" id="eventDate" required placeholder="e.g. Sept 25, 10:00 AM">
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div class="form-group">
+            <label for="eventFee">Team Registration Fee (₹)</label>
+            <input type="number" id="eventFee" required placeholder="500">
+          </div>
+          <div class="form-group">
+            <label for="eventMax">Max Teams</label>
+            <input type="number" id="eventMax" required placeholder="50">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="createBtn">Publish Event</button>
+        <div id="statusMsg" class="mt-4" style="display: none;"></div>
+      </form>
+    </div>
+
+    <!-- Existing Events -->
+    <h3>Active Events</h3>
+    <div id="eventsGrid" class="grid mt-4">
+      <div style="text-align: center; width: 100%; color: var(--text-secondary);">Loading events...</div>
+    </div>
+
+  </div>
+
+  <script>
+    // Theme toggler
+    const themeToggle = document.getElementById('themeToggle');
+    const moonIcon = document.getElementById('moonIcon');
+    const sunIcon = document.getElementById('sunIcon');
+    
+    function updateIcons(theme) {
+      if (theme === 'dark') {
+        moonIcon.classList.add('hidden');
+        sunIcon.classList.remove('hidden');
+      } else {
+        sunIcon.classList.add('hidden');
+        moonIcon.classList.remove('hidden');
+      }
+    }
+    updateIcons(savedTheme);
+    
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateIcons(newTheme);
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      sessionStorage.removeItem('klu_admin_token');
+      window.location.href = 'index.html';
+    });
+
+    // Create Event
+    document.getElementById('createEventForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('createBtn');
+      const statusMsg = document.getElementById('statusMsg');
+      
+      const title = document.getElementById('eventTitle').value;
+      const date = document.getElementById('eventDate').value;
+      const fee = document.getElementById('eventFee').value;
+      const max = document.getElementById('eventMax').value;
+
+      btn.classList.add('loading');
+      btn.disabled = true;
+
+      try {
+        const token = sessionStorage.getItem('klu_admin_token');
+        const res = await fetch('/api/events', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ title, date, fee, max })
+        });
+        
+        if (!res.ok) throw new Error('Failed to create event');
+        
+        statusMsg.className = 'alert alert-success mt-4';
+        statusMsg.innerText = 'Event created successfully!';
+        statusMsg.style.display = 'block';
+        
+        document.getElementById('createEventForm').reset();
+        loadEvents(); // refresh the grid
+      } catch (err) {
+        statusMsg.className = 'alert alert-error mt-4';
+        statusMsg.innerText = err.message;
+        statusMsg.style.display = 'block';
+      } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        setTimeout(() => { statusMsg.style.display = 'none'; }, 3000);
+      }
+    });
+
+    // Fetch Events
+    async function loadEvents() {
+      const grid = document.getElementById('eventsGrid');
+      try {
+        const res = await fetch('/api/events');
+        if (!res.ok) throw new Error('Failed to load events');
+        
+        const data = await res.json();
+        const events = data.events || [];
+
+        if (events.length === 0) {
+          grid.innerHTML = '<div style="text-align: center; width: 100%; grid-column: 1 / -1; color: var(--text-secondary); padding: 40px; border: 1px dashed var(--border-color); border-radius: var(--radius-md);">No active events. Create one above.</div>';
+          return;
+        }
+
+        grid.innerHTML = events.map(event => `
+          <div class="event-card">
+            <h3>${event.title}</h3>
+            <div class="meta">
+              <div>📅 ${event.date}</div>
+              <div>💰 ₹${event.fee} per team</div>
+              <div class="mt-2">👥 Max Teams: ${event.max}</div>
+            </div>
+            <div class="badge required" style="text-align: center; width: max-content;">Active</div>
+          </div>
+        `).join('');
+      } catch (err) {
+        grid.innerHTML = '<div class="alert alert-error" style="grid-column: 1 / -1;">Unable to load events.</div>';
+      }
+    }
+
+    loadEvents();
+  </script>
+</body>
+</html>

@@ -1,196 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!--
-    =========================================================================
-    10X Event Hub — Payment Page
-    =========================================================================
-    PURPOSE : Displays a fixed UPI QR code for the user to scan and pay.
-              After payment, user enters the UPI Reference / Transaction ID.
-    FLOW    : Shows static QR → user pays via GPay/PhonePe/Paytm →
-              enters txn ID → POST /api/register → stores ticket data →
-              redirects to ticket.html.
-    NOTE    : The QR image (qr_static.png) must be placed in /public.
-    =========================================================================
-  -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Complete your event registration payment via UPI. Scan the QR code and enter your transaction ID.">
-  <title>10X Event Hub | Checkout</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <title>10X Event Hub | Payment</title>
   <link rel="stylesheet" href="styles.css">
+  
+  <script>
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
 
-  <style>
-    /**
-     * Page-specific styles for the payment header strip.
-     * Extends the global design system.
-     */
-    .checkout-header {
-      background: linear-gradient(135deg, var(--accent), #8b5cf6);
-      padding: var(--space-lg) var(--space-2xl);
-      text-align: center;
-      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-      margin: calc(-1 * var(--space-2xl));
-      margin-bottom: var(--space-xl);
-      /* Extend to card edges */
-      width: calc(100% + var(--space-2xl) * 2);
-      position: relative;
-      left: calc(-1 * var(--space-2xl));
+    if (!sessionStorage.getItem('klu_user_email') || !sessionStorage.getItem('pending_team_payload') || !sessionStorage.getItem('current_event_id')) {
+      window.location.href = 'index.html';
     }
-
-    .checkout-header h2 {
-      font-size: var(--fs-md);
-      font-weight: 700;
-      color: white;
-      margin-bottom: 4px;
-    }
-
-    .checkout-header p {
-      font-size: var(--fs-xs);
-      color: rgba(255, 255, 255, 0.7);
-    }
-
-    .payment-methods {
-      display: flex;
-      justify-content: center;
-      gap: var(--space-md);
-      margin-top: var(--space-sm);
-    }
-
-    .payment-methods span {
-      font-size: var(--fs-xs);
-      color: rgba(255, 255, 255, 0.85);
-      background: rgba(255, 255, 255, 0.15);
-      padding: 3px 10px;
-      border-radius: var(--radius-full);
-      font-weight: 600;
-    }
-  </style>
+  </script>
 </head>
 <body>
-
-  <canvas class="particles-canvas" id="particlesCanvas"></canvas>
-
-  <!-- ======================== PAYMENT CARD ======================== -->
-  <div class="glass-card" id="payCard">
-
-    <!-- Coloured header strip -->
-    <div class="checkout-header">
-      <h2>Complete Payment</h2>
-      <p>Scan the QR code using any UPI app</p>
-      <div class="payment-methods">
-        <span>GPay</span>
-        <span>PhonePe</span>
-        <span>Paytm</span>
-      </div>
-    </div>
-
-    <!-- Step indicator -->
-    <div class="step-badge" style="margin-top: var(--space-sm);">Step 2 of 2</div>
-
-    <!-- Static QR Code -->
-    <div class="qr-frame">
-      <img
-        src="qr_static.png"
-        alt="UPI Payment QR Code"
-        onerror="this.src='https://placehold.co/200x200/1e1b4b/6c63ff?text=QR+Code'"
-      />
-      <p>Scan &amp; pay the event registration fee</p>
-    </div>
-
-    <!-- Transaction ID Form -->
-    <form id="payForm" novalidate>
-      <div class="form-group">
-        <label for="txnId">UPI Reference ID</label>
-        <input
-          type="text"
-          id="txnId"
-          placeholder="e.g. 302145678901"
-          required
-          maxlength="20"
-          autocomplete="off"
-        />
-      </div>
-
-      <button type="submit" class="btn btn-success" id="submitBtn">
-        Confirm Payment
+  
+  <nav class="navbar">
+    <a href="dashboard.html" class="brand-logo">10X Event Hub</a>
+    <div class="nav-actions">
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle Dark Mode">
+        <svg id="moonIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        <svg id="sunIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
       </button>
+      <a href="register.html" class="btn btn-secondary" style="padding: 8px 16px; width: auto; font-size: 0.875rem;">Back</a>
+    </div>
+  </nav>
 
-      <!-- Error alert -->
-      <div id="errorMsg" class="alert alert-error" role="alert"></div>
-    </form>
+  <div class="container slide-up">
+    <div class="card text-center">
+      <h2>Complete Registration</h2>
+      <p>Scan the QR code below using any UPI app to pay the team registration fee.</p>
+
+      <div style="background: white; padding: 20px; border-radius: 12px; display: inline-block; margin: 20px 0;">
+        <img src="qr_static.png" alt="Payment QR Code" style="width: 200px; height: 200px; object-fit: contain;">
+      </div>
+
+      <form id="paymentForm" class="mt-4" novalidate>
+        <div class="form-group">
+          <label for="txnId">UPI Transaction ID / UTR</label>
+          <input type="text" id="txnId" required placeholder="e.g. 123456789012" style="text-align: center;">
+        </div>
+        
+        <button type="submit" class="btn btn-primary" id="confirmBtn">Confirm Payment</button>
+        <div id="errorMsg" class="alert alert-error mt-4" style="display: none;" role="alert"></div>
+      </form>
+    </div>
   </div>
 
-  <!-- ======================== SCRIPTS ======================== -->
   <script>
-    /**
-     * Particles animation (consistent across all pages).
-     */
-    (function initParticles() {
-      const canvas = document.getElementById('particlesCanvas');
-      const ctx = canvas.getContext('2d');
-      let particles = [];
-      const COUNT = 60;
-      function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
-      function create() {
-        return {
-          x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-          r: Math.random() * 1.5 + 0.5,
-          dx: (Math.random() - 0.5) * 0.4, dy: (Math.random() - 0.5) * 0.4,
-          o: Math.random() * 0.5 + 0.1
-        };
+    // Theme toggler
+    const themeToggle = document.getElementById('themeToggle');
+    const moonIcon = document.getElementById('moonIcon');
+    const sunIcon = document.getElementById('sunIcon');
+    
+    function updateIcons(theme) {
+      if (theme === 'dark') {
+        moonIcon.classList.add('hidden');
+        sunIcon.classList.remove('hidden');
+      } else {
+        sunIcon.classList.add('hidden');
+        moonIcon.classList.remove('hidden');
       }
-      function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        particles.forEach(p => {
-          p.x += p.dx; p.y += p.dy;
-          if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
-          if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
-          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(108,99,255,${p.o})`; ctx.fill();
-        });
-        requestAnimationFrame(draw);
-      }
-      resize(); addEventListener('resize', resize);
-      for (let i = 0; i < COUNT; i++) particles.push(create());
-      draw();
-    })();
+    }
+    updateIcons(savedTheme);
+    
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateIcons(newTheme);
+    });
 
-    /**
-     * Payment Form Handler
-     * - Collects all registration data from sessionStorage.
-     * - Sends POST /api/register with name, email, phone, and txnId.
-     * - On success, stores ticket QR and data, then redirects to ticket.html.
-     */
-    document.getElementById('payForm').addEventListener('submit', async (e) => {
+    document.getElementById('paymentForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-
-      const btn      = document.getElementById('submitBtn');
+      
+      const txnId = document.getElementById('txnId').value.trim();
       const errorMsg = document.getElementById('errorMsg');
-      const txnId    = document.getElementById('txnId').value.trim();
-
+      const btn = document.getElementById('confirmBtn');
+      
       errorMsg.style.display = 'none';
 
       if (!txnId) {
-        errorMsg.innerText = 'Please enter a valid UPI Reference ID.';
+        errorMsg.innerText = 'Please enter a valid Transaction ID.';
         errorMsg.style.display = 'block';
-        return;
-      }
-
-      // Build payload from sessionStorage + form
-      const payload = {
-        email: sessionStorage.getItem('klu_user_email'),
-        name:  sessionStorage.getItem('reg_name'),
-        phone: sessionStorage.getItem('reg_phone'),
-        txnId: txnId
-      };
-
-      // Guard: ensure all data is present
-      if (!payload.email || !payload.name || !payload.phone) {
-        window.location.href = 'index.html';
         return;
       }
 
@@ -198,6 +93,16 @@
       btn.disabled = true;
 
       try {
+        const teamData = JSON.parse(sessionStorage.getItem('pending_team_payload'));
+        const eventId = sessionStorage.getItem('current_event_id');
+
+        const payload = {
+          eventId: eventId,
+          teamName: teamData.teamName,
+          members: teamData.members,
+          txnId: txnId
+        };
+
         const res = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -207,12 +112,10 @@
         const data = await res.json();
 
         if (data.success) {
-          // Store ticket data for the ticket page
-          sessionStorage.setItem('ticket_qr', data.qrCodeUrl);
-          sessionStorage.setItem('ticket_data', JSON.stringify(payload));
+          sessionStorage.setItem('qrCodeUrl', data.qrCodeUrl);
           window.location.href = 'ticket.html';
         } else {
-          throw new Error(data.message || 'Payment verification failed.');
+          throw new Error(data.message || 'Registration failed.');
         }
       } catch (err) {
         errorMsg.innerText = err.message;

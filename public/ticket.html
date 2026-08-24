@@ -1,132 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!--
-    =========================================================================
-    10X Event Hub — Ticket / Event Pass Page
-    =========================================================================
-    PURPOSE : Displays a premium digital event pass with a QR code containing
-              all registration details (name, email, txnId).
-    FLOW    : Reads ticket_qr and ticket_data from sessionStorage →
-              renders attendee info + QR code in a pass layout.
-    QR DATA : The QR encodes a JSON payload: { name, email, txnId, valid }.
-              Scanning at the registration desk verifies entry.
-    GUARD   : Redirects to index.html if no ticket data is found.
-    =========================================================================
-  -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Your official 10X Club event pass. Present this QR code at the venue for entry.">
-  <title>10X Event Hub | Your Event Pass</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <title>10X Event Hub | Digital Pass</title>
   <link rel="stylesheet" href="styles.css">
+  
+  <script>
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    const qrCodeUrl = sessionStorage.getItem('qrCodeUrl');
+    const teamPayloadStr = sessionStorage.getItem('pending_team_payload');
+    if (!qrCodeUrl || !teamPayloadStr) {
+      window.location.href = 'index.html';
+    }
+    const teamData = JSON.parse(teamPayloadStr);
+  </script>
 </head>
 <body>
-
-  <canvas class="particles-canvas" id="particlesCanvas"></canvas>
-
-  <!-- ======================== TICKET / EVENT PASS ======================== -->
-  <div class="ticket-shell" id="ticketPass">
-
-    <!-- ---- Left: Attendee Details ---- -->
-    <div class="ticket-left">
-      <div class="ticket-event-tag">Official Pass</div>
-      <div class="ticket-event-name">10X Club<br>Event 2025</div>
-
-      <div class="ticket-grid">
-        <div class="ticket-field">
-          <label>Attendee Name</label>
-          <p id="tName">—</p>
-        </div>
-        <div class="ticket-field">
-          <label>Academic Email</label>
-          <p id="tEmail">—</p>
-        </div>
-        <div class="ticket-field">
-          <label>Transaction ID</label>
-          <p id="tTxn">—</p>
-        </div>
-        <div class="ticket-field">
-          <label>Access Status</label>
-          <div class="ticket-status">Verified</div>
-        </div>
-      </div>
+  
+  <nav class="navbar">
+    <a href="dashboard.html" class="brand-logo">10X Event Hub</a>
+    <div class="nav-actions">
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle Dark Mode">
+        <svg id="moonIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        <svg id="sunIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+      </button>
+      <button id="logoutBtn" class="btn btn-secondary" style="padding: 8px 16px; width: auto; font-size: 0.875rem;">Done</button>
     </div>
+  </nav>
 
-    <!-- ---- Right: QR Stub ---- -->
-    <div class="ticket-right">
-      <div class="ticket-qr">
-        <img id="ticketQr" alt="Event Access QR Code" />
+  <div class="container slide-up">
+    <div class="card text-center">
+      <div class="badge required" style="display: inline-block; margin-bottom: 16px;">Registration Confirmed</div>
+      <h2>Digital Pass</h2>
+      <p>Save this QR code for venue verification.</p>
+
+      <div style="background: white; padding: 20px; border-radius: 12px; display: inline-block; margin: 20px 0;">
+        <img id="qrImage" src="" alt="Ticket QR Code" style="width: 250px; height: 250px; object-fit: contain;">
       </div>
-      <div class="ticket-scan-text">
-        Scan at the registration<br>desk for venue entry
+
+      <div style="text-align: left; background-color: rgba(134, 134, 139, 0.05); padding: 20px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+        <h3 style="margin-bottom: 12px; font-size: 1.1rem;" id="ticketTeamName">Team Name</h3>
+        <p style="margin: 0; font-size: 0.875rem; color: var(--text-primary);"><strong style="color: var(--text-secondary)">Leader:</strong> <span id="ticketLeader"></span></p>
+        <p style="margin: 8px 0 0 0; font-size: 0.875rem; color: var(--text-primary);"><strong style="color: var(--text-secondary)">Members:</strong> <span id="ticketCount"></span> total</p>
       </div>
+
+      <button id="downloadBtn" class="btn btn-primary mt-4">Download Pass</button>
     </div>
   </div>
 
-  <!-- Print / Download button -->
-  <button class="print-action" id="printBtn" onclick="window.print()">
-    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-      <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"></path>
-    </svg>
-    Download / Print Pass
-  </button>
-
-  <!-- ======================== SCRIPTS ======================== -->
   <script>
-    /**
-     * Particles animation.
-     */
-    (function initParticles() {
-      const canvas = document.getElementById('particlesCanvas');
-      const ctx = canvas.getContext('2d');
-      let particles = [];
-      const COUNT = 60;
-      function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
-      function create() {
-        return {
-          x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-          r: Math.random() * 1.5 + 0.5,
-          dx: (Math.random() - 0.5) * 0.4, dy: (Math.random() - 0.5) * 0.4,
-          o: Math.random() * 0.5 + 0.1
-        };
+    // Theme toggler
+    const themeToggle = document.getElementById('themeToggle');
+    const moonIcon = document.getElementById('moonIcon');
+    const sunIcon = document.getElementById('sunIcon');
+    
+    function updateIcons(theme) {
+      if (theme === 'dark') {
+        moonIcon.classList.add('hidden');
+        sunIcon.classList.remove('hidden');
+      } else {
+        sunIcon.classList.add('hidden');
+        moonIcon.classList.remove('hidden');
       }
-      function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        particles.forEach(p => {
-          p.x += p.dx; p.y += p.dy;
-          if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
-          if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
-          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(108,99,255,${p.o})`; ctx.fill();
-        });
-        requestAnimationFrame(draw);
-      }
-      resize(); addEventListener('resize', resize);
-      for (let i = 0; i < COUNT; i++) particles.push(create());
-      draw();
-    })();
-
-    /**
-     * Ticket Data Renderer
-     * Reads QR code image and attendee data from sessionStorage.
-     * Redirects to login if no data is found.
-     */
-    const qr      = sessionStorage.getItem('ticket_qr');
-    const dataStr  = sessionStorage.getItem('ticket_data');
-
-    if (!qr || !dataStr) {
-      window.location.href = 'index.html';
-    } else {
-      const data = JSON.parse(dataStr);
-      document.getElementById('tName').innerText  = data.name  || '—';
-      document.getElementById('tEmail').innerText  = data.email || '—';
-      document.getElementById('tTxn').innerText    = data.txnId || '—';
-      document.getElementById('ticketQr').src      = qr;
     }
+    updateIcons(savedTheme);
+    
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateIcons(newTheme);
+    });
+
+    // Populate data
+    document.getElementById('qrImage').src = qrCodeUrl;
+    document.getElementById('ticketTeamName').innerText = teamData.teamName;
+    document.getElementById('ticketLeader').innerText = teamData.members[0].name;
+    document.getElementById('ticketCount').innerText = teamData.members.length;
+
+    // Download functionality
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.href = qrCodeUrl;
+      a.download = `${teamData.teamName.replace(/\s+/g, '_')}_Ticket.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      sessionStorage.removeItem('pending_team_payload');
+      sessionStorage.removeItem('qrCodeUrl');
+      sessionStorage.removeItem('current_event_id');
+      window.location.href = 'dashboard.html';
+    });
   </script>
 </body>
 </html>

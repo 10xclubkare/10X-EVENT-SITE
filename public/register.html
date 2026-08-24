@@ -1,141 +1,212 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!--
-    =========================================================================
-    10X Event Hub — Registration Page
-    =========================================================================
-    PURPOSE : Collects delegate details (name, phone) after email verification.
-    FLOW    : Pre-fills verified email from sessionStorage → user enters
-              name + phone → data stored in sessionStorage → redirects
-              to payment.html.
-    GUARD   : Redirects to index.html if no verified email is found.
-    =========================================================================
-  -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Register as a delegate for KLU 10X Club events. Provide your details to proceed to payment.">
-  <title>10X Event Hub | Delegate Registration</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <title>10X Event Hub | Register Team</title>
   <link rel="stylesheet" href="styles.css">
+  
+  <script>
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    // Enforce login
+    if (!sessionStorage.getItem('klu_user_email')) {
+      window.location.href = 'index.html';
+    }
+
+    // Get Event ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const eventId = urlParams.get('eventId');
+    if (!eventId) {
+      window.location.href = 'dashboard.html';
+    }
+    sessionStorage.setItem('current_event_id', eventId);
+  </script>
 </head>
 <body>
-
-  <canvas class="particles-canvas" id="particlesCanvas"></canvas>
-
-  <!-- ======================== REGISTRATION CARD ======================== -->
-  <div class="glass-card" id="regCard">
-
-    <!-- Step indicator -->
-    <div class="step-badge">Step 1 of 2</div>
-
-    <!-- Branding -->
-    <div class="brand">
-      <div class="brand-logo">10X</div>
-      <h1>Delegate Details</h1>
-      <p>Fill in your information to reserve your spot at the event.</p>
-    </div>
-
-    <!-- Registration Form -->
-    <form id="regForm" novalidate>
-      <!-- Verified email (read-only) -->
-      <div class="form-group">
-        <label for="email">Verified Email</label>
-        <input type="email" id="email" disabled />
-      </div>
-
-      <!-- Full Name -->
-      <div class="form-group">
-        <label for="name">Full Name</label>
-        <input
-          type="text"
-          id="name"
-          placeholder="Enter your full name"
-          required
-          autocomplete="name"
-        />
-      </div>
-
-      <!-- Contact Number -->
-      <div class="form-group">
-        <label for="phone">Contact Number</label>
-        <input
-          type="tel"
-          id="phone"
-          placeholder="+91 98765 43210"
-          required
-          autocomplete="tel"
-        />
-      </div>
-
-      <button type="submit" class="btn btn-primary" id="regBtn">
-        Proceed to Payment →
+  
+  <nav class="navbar">
+    <a href="dashboard.html" class="brand-logo">10X Event Hub</a>
+    <div class="nav-actions">
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle Dark Mode">
+        <svg id="moonIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        <svg id="sunIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
       </button>
+      <a href="dashboard.html" class="btn btn-secondary" style="padding: 8px 16px; width: auto; font-size: 0.875rem;">Cancel</a>
+    </div>
+  </nav>
+
+  <div class="container slide-up" style="max-width: 600px;">
+    <h2>Event Registration</h2>
+    <p>Complete your team registration details below.</p>
+
+    <form id="teamRegisterForm" class="card mt-4" style="max-width: 100%;">
+      
+      <!-- Team Info -->
+      <div class="form-section">
+        <h3>Team Details <span class="badge required">Required</span></h3>
+        <div class="form-group">
+          <label for="teamName">Team Name</label>
+          <input type="text" id="teamName" required placeholder="e.g. Code Breakers">
+        </div>
+      </div>
+
+      <!-- Member 1 -->
+      <div class="form-section">
+        <h3>Team Leader (Member 1) <span class="badge required">Required</span></h3>
+        <div class="form-group"><label>Full Name</label><input type="text" id="m1_name" required></div>
+        <div class="form-group"><label>Registration Number</label><input type="text" id="m1_reg" required></div>
+        <div class="form-group"><label>Phone Number</label><input type="tel" id="m1_phone" required></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group"><label>Section</label><input type="text" id="m1_sec" required></div>
+          <div class="form-group"><label>Department</label><input type="text" id="m1_dept" required></div>
+        </div>
+        <div class="form-group">
+          <label>Residency Status</label>
+          <select id="m1_res" required>
+            <option value="">-- Select --</option>
+            <option value="Hosteller">Hosteller</option>
+            <option value="Day Scholar">Day Scholar</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Member 2 -->
+      <div class="form-section">
+        <h3>Member 2 Details <span class="badge required">Required</span></h3>
+        <div class="form-group"><label>Full Name</label><input type="text" id="m2_name" required></div>
+        <div class="form-group"><label>Registration Number</label><input type="text" id="m2_reg" required></div>
+        <div class="form-group"><label>Phone Number</label><input type="tel" id="m2_phone" required></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group"><label>Section</label><input type="text" id="m2_sec" required></div>
+          <div class="form-group"><label>Department</label><input type="text" id="m2_dept" required></div>
+        </div>
+        <div class="form-group">
+          <label>Residency Status</label>
+          <select id="m2_res" required>
+            <option value="">-- Select --</option>
+            <option value="Hosteller">Hosteller</option>
+            <option value="Day Scholar">Day Scholar</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Member 3 -->
+      <div class="form-section">
+        <h3>Member 3 Details <span class="badge optional">Optional</span></h3>
+        <div class="form-group"><label>Full Name</label><input type="text" id="m3_name"></div>
+        <div class="form-group"><label>Registration Number</label><input type="text" id="m3_reg"></div>
+        <div class="form-group"><label>Phone Number</label><input type="tel" id="m3_phone"></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group"><label>Section</label><input type="text" id="m3_sec"></div>
+          <div class="form-group"><label>Department</label><input type="text" id="m3_dept"></div>
+        </div>
+        <div class="form-group">
+          <label>Residency Status</label>
+          <select id="m3_res">
+            <option value="">-- Select --</option>
+            <option value="Hosteller">Hosteller</option>
+            <option value="Day Scholar">Day Scholar</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Member 4 -->
+      <div class="form-section">
+        <h3>Member 4 Details <span class="badge optional">Optional</span></h3>
+        <div class="form-group"><label>Full Name</label><input type="text" id="m4_name"></div>
+        <div class="form-group"><label>Registration Number</label><input type="text" id="m4_reg"></div>
+        <div class="form-group"><label>Phone Number</label><input type="tel" id="m4_phone"></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group"><label>Section</label><input type="text" id="m4_sec"></div>
+          <div class="form-group"><label>Department</label><input type="text" id="m4_dept"></div>
+        </div>
+        <div class="form-group">
+          <label>Residency Status</label>
+          <select id="m4_res">
+            <option value="">-- Select --</option>
+            <option value="Hosteller">Hosteller</option>
+            <option value="Day Scholar">Day Scholar</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Member 5 -->
+      <div class="form-section">
+        <h3>Member 5 Details <span class="badge optional">Optional</span></h3>
+        <div class="form-group"><label>Full Name</label><input type="text" id="m5_name"></div>
+        <div class="form-group"><label>Registration Number</label><input type="text" id="m5_reg"></div>
+        <div class="form-group"><label>Phone Number</label><input type="tel" id="m5_phone"></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group"><label>Section</label><input type="text" id="m5_sec"></div>
+          <div class="form-group"><label>Department</label><input type="text" id="m5_dept"></div>
+        </div>
+        <div class="form-group">
+          <label>Residency Status</label>
+          <select id="m5_res">
+            <option value="">-- Select --</option>
+            <option value="Hosteller">Hosteller</option>
+            <option value="Day Scholar">Day Scholar</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="proceedBtn">Proceed to Payment</button>
+      <div id="errorMsg" class="alert alert-error mt-4" style="display: none;" role="alert"></div>
     </form>
   </div>
 
-  <!-- ======================== SCRIPTS ======================== -->
   <script>
-    /**
-     * Particles — same lightweight canvas animation as login page.
-     */
-    (function initParticles() {
-      const canvas = document.getElementById('particlesCanvas');
-      const ctx = canvas.getContext('2d');
-      let particles = [];
-      const COUNT = 60;
-      function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
-      function create() {
-        return {
-          x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-          r: Math.random() * 1.5 + 0.5,
-          dx: (Math.random() - 0.5) * 0.4, dy: (Math.random() - 0.5) * 0.4,
-          o: Math.random() * 0.5 + 0.1
-        };
+    // Theme toggler
+    const themeToggle = document.getElementById('themeToggle');
+    const moonIcon = document.getElementById('moonIcon');
+    const sunIcon = document.getElementById('sunIcon');
+    
+    function updateIcons(theme) {
+      if (theme === 'dark') {
+        moonIcon.classList.add('hidden');
+        sunIcon.classList.remove('hidden');
+      } else {
+        sunIcon.classList.add('hidden');
+        moonIcon.classList.remove('hidden');
       }
-      function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        particles.forEach(p => {
-          p.x += p.dx; p.y += p.dy;
-          if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
-          if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
-          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(108,99,255,${p.o})`; ctx.fill();
-        });
-        requestAnimationFrame(draw);
-      }
-      resize(); addEventListener('resize', resize);
-      for (let i = 0; i < COUNT; i++) particles.push(create());
-      draw();
-    })();
-
-    /**
-     * Auth guard — redirect to login if no verified email exists.
-     */
-    const userEmail = sessionStorage.getItem('klu_user_email');
-    if (!userEmail) {
-      window.location.href = 'index.html';
-    } else {
-      document.getElementById('email').value = userEmail;
     }
+    updateIcons(savedTheme);
+    
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateIcons(newTheme);
+    });
 
-    /**
-     * Registration Form Handler
-     * Stores name and phone in sessionStorage, then redirects to payment.
-     */
-    document.getElementById('regForm').addEventListener('submit', (e) => {
+    document.getElementById('teamRegisterForm').addEventListener('submit', (e) => {
       e.preventDefault();
+      
+      const teamData = {
+        teamName: document.getElementById('teamName').value,
+        members: []
+      };
 
-      const name  = document.getElementById('name').value.trim();
-      const phone = document.getElementById('phone').value.trim();
+      // Collect Members 1 to 5
+      for(let i=1; i<=5; i++) {
+        const name = document.getElementById(`m${i}_name`).value;
+        if(name) { // If name exists, push as member
+          teamData.members.push({
+            name: name,
+            reg: document.getElementById(`m${i}_reg`).value,
+            phone: document.getElementById(`m${i}_phone`).value,
+            sec: document.getElementById(`m${i}_sec`).value,
+            dept: document.getElementById(`m${i}_dept`).value,
+            res: document.getElementById(`m${i}_res`).value
+          });
+        }
+      }
 
-      if (!name || !phone) return;
-
-      sessionStorage.setItem('reg_name', name);
-      sessionStorage.setItem('reg_phone', phone);
+      // Save payload to session and route to payment
+      sessionStorage.setItem('pending_team_payload', JSON.stringify(teamData));
       window.location.href = 'payment.html';
     });
   </script>
