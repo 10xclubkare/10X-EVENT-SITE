@@ -127,9 +127,23 @@
     const app = initializeApp(firebaseConfig);
     const analytics = getAnalytics(app);
     const auth = getAuth(app);
+
+    /**
+     * Google OAuth Provider Configuration
+     * ------------------------------------
+     * - client_id : GCP OAuth 2.0 Client ID (public, safe for frontend)
+     * - hd        : Hosted domain hint — tells Google's login screen to
+     *               default to @klu.ac.in accounts. This is a UI hint only;
+     *               the actual domain enforcement happens after sign-in below.
+     *
+     * NOTE: The Client Secret (GOCSPX-...) must NEVER be placed in frontend
+     *       code. It is configured in:
+     *       Firebase Console → Authentication → Sign-in method → Google
+     */
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({
-      hd: 'klu.ac.in' // Hint for Google Sign-In to prompt for this domain
+      client_id: '1094391287137-iglk30ai0j94eif66hb1kvegqptqob2v.apps.googleusercontent.com',
+      hd: 'klu.ac.in'
     });
 
     document.getElementById('googleLoginBtn').addEventListener('click', async () => {
