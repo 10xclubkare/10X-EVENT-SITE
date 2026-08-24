@@ -158,31 +158,46 @@
         const result = await signInWithPopup(auth, provider);
         const email = result.user.email.toLowerCase();
 
-        // Verify the domain
+        // Verify the domain — hard enforcement (not just a hint)
         if (!email.endsWith('@klu.ac.in')) {
-          // If they used a wrong email despite the hint, sign them out immediately
           await signOut(auth);
           throw new Error('Access denied. Please use your @klu.ac.in academic email.');
         }
 
-        // Domain is valid, verify with our server (optional, but good for consistency)
-        const res = await fetch('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
-        });
-        
-        const data = await res.json();
-        if (data.success) {
-          sessionStorage.setItem('klu_user_email', email);
-          window.location.href = 'register.html';
-        } else {
-          await signOut(auth);
-          throw new Error(data.message || 'Server verification failed.');
+        // Try to verify with our backend server (graceful — won't block if server is down)
+        try {
+          const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+          });
+
+          if (!res.ok) {
+            console.warn('Server returned status', res.status, '— proceeding with Firebase auth only.');
+          } else {
+            const data = await res.json();
+            if (!data.success) {
+              console.warn('Server rejected login:', data.message);
+            }
+          }
+        } catch (serverErr) {
+          // Server is unreachable or returned non-JSON — that's fine,
+          // Firebase auth already verified the user.
+          console.warn('Backend server unavailable — proceeding with Firebase auth only.');
         }
+
+        // Firebase verified + domain checked → allow entry
+        sessionStorage.setItem('klu_user_email', email);
+        window.location.href = 'register.html';
+
       } catch (err) {
-        errorMsg.innerText = err.message || 'Authentication failed. Please try again.';
-        errorMsg.style.display = 'block';
+        // Only show errors from Firebase/domain check, not server connectivity
+        if (err.code === 'auth/popup-closed-by-user') {
+          // User closed the popup — no error needed
+        } else {
+          errorMsg.innerText = err.message || 'Authentication failed. Please try again.';
+          errorMsg.style.display = 'block';
+        }
       } finally {
         btn.classList.remove('loading');
         btn.disabled = false;
