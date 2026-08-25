@@ -34,23 +34,28 @@ const PORT = process.env.PORT || 3000;
 // Hardcoded Admin Passcode for /controller
 const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || 'b10xCLUB';
 
-// Initialize Firebase Admin
-if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-  try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-  } catch (err) {
-    console.error('Error parsing FIREBASE_SERVICE_ACCOUNT', err);
+let db;
+try {
+  // Initialize Firebase Admin
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    try {
+      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+    } catch (err) {
+      console.error('Error parsing FIREBASE_SERVICE_ACCOUNT. Make sure it is valid JSON.', err);
+      admin.initializeApp();
+    }
+  } else {
+    // Fallback for local testing if GOOGLE_APPLICATION_CREDENTIALS is set, or default
     admin.initializeApp();
   }
-} else {
-  // Fallback for local testing if GOOGLE_APPLICATION_CREDENTIALS is set, or default
-  admin.initializeApp();
+  db = admin.firestore();
+} catch (error) {
+  console.error("FIREBASE INITIALIZATION ERROR:", error.message);
+  console.error("Please add FIREBASE_SERVICE_ACCOUNT to Vercel Environment Variables.");
 }
-
-const db = admin.firestore();
 
 // Middleware
 app.use(express.json());
@@ -80,6 +85,8 @@ app.post('/api/login', (req, res) => {
  * Validates the admin passcode. In a real app, use sessions/JWT.
  */
 app.post('/api/controller/login', (req, res) => {
+  if (!db) return res.status(500).json({ success: false, message: 'Firebase not configured! Add FIREBASE_SERVICE_ACCOUNT to Vercel.' });
+  
   const { passcode } = req.body;
   if (passcode === ADMIN_PASSCODE) {
     // Return a dummy token for frontend routing
@@ -93,6 +100,7 @@ app.post('/api/controller/login', (req, res) => {
  * Returns the list of active events from Firestore.
  */
 app.get('/api/events', async (req, res) => {
+  if (!db) return res.status(500).json({ success: false, message: 'Firebase not configured! Add FIREBASE_SERVICE_ACCOUNT to Vercel.' });
   try {
     const snapshot = await db.collection('events').get();
     const events = [];
@@ -111,6 +119,7 @@ app.get('/api/events', async (req, res) => {
  * Admin endpoint to create a new event in Firestore.
  */
 app.post('/api/events', async (req, res) => {
+  if (!db) return res.status(500).json({ success: false, message: 'Firebase not configured! Add FIREBASE_SERVICE_ACCOUNT to Vercel.' });
   // Check dummy auth token
   if (req.headers.authorization !== 'Bearer controller-access-token-777') {
     return res.status(403).json({ success: false, message: 'Unauthorized' });
@@ -145,6 +154,7 @@ app.post('/api/events', async (req, res) => {
  * Registers a team, saves to Firestore, generates QR.
  */
 app.post('/api/register', async (req, res) => {
+  if (!db) return res.status(500).json({ success: false, message: 'Firebase not configured! Add FIREBASE_SERVICE_ACCOUNT to Vercel.' });
   const { eventId, teamName, members, txnId } = req.body;
 
   if (!teamName || !members || !members[0] || !members[1] || !txnId) {
@@ -214,6 +224,7 @@ app.post('/api/register', async (req, res) => {
  * Downloads the master Excel sheet dynamically generated from Firestore.
  */
 app.get('/api/registrations/download', async (req, res) => {
+  if (!db) return res.status(500).send('Firebase not configured! Add FIREBASE_SERVICE_ACCOUNT to Vercel.');
   try {
     const snapshot = await db.collection('registrations').orderBy('timestamp', 'desc').get();
     
