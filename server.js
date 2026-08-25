@@ -8,8 +8,8 @@
  *
  *   1. Academic email login verification (@klu.ac.in only)
  *   2. Controller (Admin) login via passcode
- *   3. Event creation and listing (stored in events.json)
- *   4. Team registration with Excel persistence (each row = 1 team)
+ *   3. Event creation and listing (stored in Firestore)
+ *   4. Team registration with Firestore persistence
  *   5. Dynamic QR code generation for digital event passes
  *
  * ============================================================================
@@ -19,7 +19,7 @@ const express = require('express');
 const ExcelJS = require('exceljs');
 const QRCode  = require('qrcode');
 const path    = require('path');
-const fs      = require('fs').promises;
+const admin   = require('firebase-admin');
 
 // Load .env if present
 try { require('dotenv').config(); } catch (_) {}
@@ -34,24 +34,27 @@ const PORT = process.env.PORT || 3000;
 // Hardcoded Admin Passcode for /controller
 const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || 'b10xCLUB';
 
-// On Vercel, use /tmp for writeable filesystem (ephemeral storage)
-const isVercel = process.env.VERCEL || process.env.NODE_ENV === 'production';
-const EXCEL_FILE = isVercel ? path.join('/tmp', 'registrations.xlsx') : path.join(__dirname, 'registrations.xlsx');
-const EVENTS_FILE = isVercel ? path.join('/tmp', 'events.json') : path.join(__dirname, 'events.json');
+// Initialize Firebase Admin
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+  } catch (err) {
+    console.error('Error parsing FIREBASE_SERVICE_ACCOUNT', err);
+    admin.initializeApp();
+  }
+} else {
+  // Fallback for local testing if GOOGLE_APPLICATION_CREDENTIALS is set, or default
+  admin.initializeApp();
+}
+
+const db = admin.firestore();
 
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Initialize events.json if not exists
-async function initFiles() {
-  try {
-    await fs.access(EVENTS_FILE);
-  } catch {
-    await fs.writeFile(EVENTS_FILE, JSON.stringify({ events: [] }, null, 2));
-  }
-}
-initFiles();
 
 // ---------------------------------------------------------------------------
 // API Endpoints
@@ -87,20 +90,25 @@ app.post('/api/controller/login', (req, res) => {
 
 /**
  * GET /api/events
- * Returns the list of active events.
+ * Returns the list of active events from Firestore.
  */
 app.get('/api/events', async (req, res) => {
   try {
-    const data = await fs.readFile(EVENTS_FILE, 'utf-8');
-    res.json(JSON.parse(data));
+    const snapshot = await db.collection('events').get();
+    const events = [];
+    snapshot.forEach(doc => {
+      events.push(doc.data());
+    });
+    res.json({ events });
   } catch (err) {
+    console.error('[ERROR] Failed to fetch events from Firestore:', err);
     res.status(500).json({ success: false, message: 'Failed to load events.' });
   }
 });
 
 /**
  * POST /api/events
- * Admin endpoint to create a new event.
+ * Admin endpoint to create a new event in Firestore.
  */
 app.post('/api/events', async (req, res) => {
   // Check dummy auth token
@@ -114,7 +122,6 @@ app.post('/api/events', async (req, res) => {
   }
 
   try {
-    const data = JSON.parse(await fs.readFile(EVENTS_FILE, 'utf-8'));
     const newEvent = {
       id: 'EVT' + Date.now(),
       title,
@@ -122,17 +129,20 @@ app.post('/api/events', async (req, res) => {
       fee,
       max
     };
-    data.events.push(newEvent);
-    await fs.writeFile(EVENTS_FILE, JSON.stringify(data, null, 2));
+    
+    // Write to Firestore
+    await db.collection('events').doc(newEvent.id).set(newEvent);
+    
     res.json({ success: true, event: newEvent });
   } catch (err) {
+    console.error('[ERROR] Failed to save event to Firestore:', err);
     res.status(500).json({ success: false, message: 'Server error saving event.' });
   }
 });
 
 /**
  * POST /api/register
- * Registers a team, saves to Excel, generates QR.
+ * Registers a team, saves to Firestore, generates QR.
  */
 app.post('/api/register', async (req, res) => {
   const { eventId, teamName, members, txnId } = req.body;
@@ -146,64 +156,9 @@ app.post('/api/register', async (req, res) => {
 
   try {
     // ------------------------------------------------------------------
-    // Step 1: Write to Excel
+    // Step 1: Write to Firestore
     // ------------------------------------------------------------------
-    const workbook = new ExcelJS.Workbook();
-
-    try {
-      await workbook.xlsx.readFile(EXCEL_FILE);
-    } catch {
-      // File doesn't exist yet — create a fresh workbook with headers
-      const sheet = workbook.addWorksheet('Registrations');
-      sheet.columns = [
-        { header: 'Event ID',      key: 'eventId',   width: 15 },
-        { header: 'Team Name',     key: 'teamName',  width: 25 },
-        { header: 'Txn ID',        key: 'txnId',     width: 20 },
-        // Member 1
-        { header: 'M1 Name',       key: 'm1_name',   width: 20 },
-        { header: 'M1 RegNo',      key: 'm1_reg',    width: 15 },
-        { header: 'M1 Phone',      key: 'm1_phone',  width: 15 },
-        { header: 'M1 Sec',        key: 'm1_sec',    width: 10 },
-        { header: 'M1 Dept',       key: 'm1_dept',   width: 15 },
-        { header: 'M1 Res',        key: 'm1_res',    width: 15 },
-        // Member 2
-        { header: 'M2 Name',       key: 'm2_name',   width: 20 },
-        { header: 'M2 RegNo',      key: 'm2_reg',    width: 15 },
-        { header: 'M2 Phone',      key: 'm2_phone',  width: 15 },
-        { header: 'M2 Sec',        key: 'm2_sec',    width: 10 },
-        { header: 'M2 Dept',       key: 'm2_dept',   width: 15 },
-        { header: 'M2 Res',        key: 'm2_res',    width: 15 },
-        // Member 3
-        { header: 'M3 Name',       key: 'm3_name',   width: 20 },
-        { header: 'M3 RegNo',      key: 'm3_reg',    width: 15 },
-        { header: 'M3 Phone',      key: 'm3_phone',  width: 15 },
-        { header: 'M3 Sec',        key: 'm3_sec',    width: 10 },
-        { header: 'M3 Dept',       key: 'm3_dept',   width: 15 },
-        { header: 'M3 Res',        key: 'm3_res',    width: 15 },
-        // Member 4
-        { header: 'M4 Name',       key: 'm4_name',   width: 20 },
-        { header: 'M4 RegNo',      key: 'm4_reg',    width: 15 },
-        { header: 'M4 Phone',      key: 'm4_phone',  width: 15 },
-        { header: 'M4 Sec',        key: 'm4_sec',    width: 10 },
-        { header: 'M4 Dept',       key: 'm4_dept',   width: 15 },
-        { header: 'M4 Res',        key: 'm4_res',    width: 15 },
-        // Member 5
-        { header: 'M5 Name',       key: 'm5_name',   width: 20 },
-        { header: 'M5 RegNo',      key: 'm5_reg',    width: 15 },
-        { header: 'M5 Phone',      key: 'm5_phone',  width: 15 },
-        { header: 'M5 Sec',        key: 'm5_sec',    width: 10 },
-        { header: 'M5 Dept',       key: 'm5_dept',   width: 15 },
-        { header: 'M5 Res',        key: 'm5_res',    width: 15 },
-        
-        { header: 'Timestamp',     key: 'timestamp', width: 25 }
-      ];
-      sheet.getRow(1).font = { bold: true };
-    }
-
-    const worksheet = workbook.getWorksheet('Registrations');
-
-    // Build row data mapping
-    const rowData = {
+    const registrationData = {
       eventId: eventId || 'UNKNOWN',
       teamName: teamName,
       txnId: txnId,
@@ -214,18 +169,17 @@ app.post('/api/register', async (req, res) => {
     for(let i=0; i<5; i++) {
       const m = members[i];
       if (m) {
-        rowData[`m${i+1}_name`] = m.name;
-        rowData[`m${i+1}_reg`] = m.reg;
-        rowData[`m${i+1}_phone`] = m.phone;
-        rowData[`m${i+1}_sec`] = m.sec;
-        rowData[`m${i+1}_dept`] = m.dept;
-        rowData[`m${i+1}_res`] = m.res;
+        registrationData[`m${i+1}_name`] = m.name;
+        registrationData[`m${i+1}_reg`] = m.reg;
+        registrationData[`m${i+1}_phone`] = m.phone;
+        registrationData[`m${i+1}_sec`] = m.sec;
+        registrationData[`m${i+1}_dept`] = m.dept;
+        registrationData[`m${i+1}_res`] = m.res;
       }
     }
 
-    worksheet.addRow(rowData);
-    await workbook.xlsx.writeFile(EXCEL_FILE);
-    console.log(`[REGISTER] Team ${teamName} saved to Excel`);
+    const docRef = await db.collection('registrations').add(registrationData);
+    console.log(`[REGISTER] Team ${teamName} saved to Firestore with ID: ${docRef.id}`);
 
     // ------------------------------------------------------------------
     // Step 2: Generate Ticket QR Code
@@ -250,23 +204,83 @@ app.post('/api/register', async (req, res) => {
     res.json({ success: true, qrCodeUrl });
 
   } catch (err) {
-    console.error('[ERROR] Registration failed:', err.message);
+    console.error('[ERROR] Registration failed:', err);
     res.status(500).json({ success: false, message: 'Server error while saving registration.' });
   }
 });
 
 /**
  * GET /api/registrations/download
- * Downloads the master Excel sheet.
+ * Downloads the master Excel sheet dynamically generated from Firestore.
  */
-app.get('/api/registrations/download', (req, res) => {
-  res.download(EXCEL_FILE, 'registrations_master.xlsx', (err) => {
-    if (err) {
-      if (!res.headersSent) {
-        res.status(404).send('No registrations found yet.');
-      }
+app.get('/api/registrations/download', async (req, res) => {
+  try {
+    const snapshot = await db.collection('registrations').orderBy('timestamp', 'desc').get();
+    
+    if (snapshot.empty) {
+      return res.status(404).send('No registrations found yet.');
     }
-  });
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Registrations');
+    
+    sheet.columns = [
+      { header: 'Event ID',      key: 'eventId',   width: 15 },
+      { header: 'Team Name',     key: 'teamName',  width: 25 },
+      { header: 'Txn ID',        key: 'txnId',     width: 20 },
+      // Member 1
+      { header: 'M1 Name',       key: 'm1_name',   width: 20 },
+      { header: 'M1 RegNo',      key: 'm1_reg',    width: 15 },
+      { header: 'M1 Phone',      key: 'm1_phone',  width: 15 },
+      { header: 'M1 Sec',        key: 'm1_sec',    width: 10 },
+      { header: 'M1 Dept',       key: 'm1_dept',   width: 15 },
+      { header: 'M1 Res',        key: 'm1_res',    width: 15 },
+      // Member 2
+      { header: 'M2 Name',       key: 'm2_name',   width: 20 },
+      { header: 'M2 RegNo',      key: 'm2_reg',    width: 15 },
+      { header: 'M2 Phone',      key: 'm2_phone',  width: 15 },
+      { header: 'M2 Sec',        key: 'm2_sec',    width: 10 },
+      { header: 'M2 Dept',       key: 'm2_dept',   width: 15 },
+      { header: 'M2 Res',        key: 'm2_res',    width: 15 },
+      // Member 3
+      { header: 'M3 Name',       key: 'm3_name',   width: 20 },
+      { header: 'M3 RegNo',      key: 'm3_reg',    width: 15 },
+      { header: 'M3 Phone',      key: 'm3_phone',  width: 15 },
+      { header: 'M3 Sec',        key: 'm3_sec',    width: 10 },
+      { header: 'M3 Dept',       key: 'm3_dept',   width: 15 },
+      { header: 'M3 Res',        key: 'm3_res',    width: 15 },
+      // Member 4
+      { header: 'M4 Name',       key: 'm4_name',   width: 20 },
+      { header: 'M4 RegNo',      key: 'm4_reg',    width: 15 },
+      { header: 'M4 Phone',      key: 'm4_phone',  width: 15 },
+      { header: 'M4 Sec',        key: 'm4_sec',    width: 10 },
+      { header: 'M4 Dept',       key: 'm4_dept',   width: 15 },
+      { header: 'M4 Res',        key: 'm4_res',    width: 15 },
+      // Member 5
+      { header: 'M5 Name',       key: 'm5_name',   width: 20 },
+      { header: 'M5 RegNo',      key: 'm5_reg',    width: 15 },
+      { header: 'M5 Phone',      key: 'm5_phone',  width: 15 },
+      { header: 'M5 Sec',        key: 'm5_sec',    width: 10 },
+      { header: 'M5 Dept',       key: 'm5_dept',   width: 15 },
+      { header: 'M5 Res',        key: 'm5_res',    width: 15 },
+      
+      { header: 'Timestamp',     key: 'timestamp', width: 25 }
+    ];
+    sheet.getRow(1).font = { bold: true };
+
+    snapshot.forEach(doc => {
+      sheet.addRow(doc.data());
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=' + 'registrations_master.xlsx');
+    
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error('[ERROR] Failed to download registrations from Firestore:', err);
+    res.status(500).send('Server error while generating Excel file.');
+  }
 });
 
 // ---------------------------------------------------------------------------
