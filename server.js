@@ -34,8 +34,10 @@ const PORT = process.env.PORT || 3000;
 // Hardcoded Admin Passcode for /controller
 const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || 'b10xCLUB';
 
-const EXCEL_FILE = path.join(__dirname, 'registrations.xlsx');
-const EVENTS_FILE = path.join(__dirname, 'events.json');
+// On Vercel, use /tmp for writeable filesystem (ephemeral storage)
+const isVercel = process.env.VERCEL || process.env.NODE_ENV === 'production';
+const EXCEL_FILE = isVercel ? path.join('/tmp', 'registrations.xlsx') : path.join(__dirname, 'registrations.xlsx');
+const EVENTS_FILE = isVercel ? path.join('/tmp', 'events.json') : path.join(__dirname, 'events.json');
 
 // Middleware
 app.use(express.json());
@@ -271,11 +273,15 @@ app.get('/api/registrations/download', (req, res) => {
 // Start Server
 // ---------------------------------------------------------------------------
 
-app.listen(PORT, () => {
-  console.log('');
-  console.log('  ╔══════════════════════════════════════════╗');
-  console.log('  ║       10X Event Hub — Server Ready       ║');
-  console.log(`  ║    http://localhost:${PORT}                  ║`);
-  console.log('  ╚══════════════════════════════════════════╝');
-  console.log('');
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log('');
+    console.log('  ╔══════════════════════════════════════════╗');
+    console.log('  ║       10X Event Hub — Server Ready       ║');
+    console.log(`  ║    http://localhost:${PORT}                  ║`);
+    console.log('  ╚══════════════════════════════════════════╝');
+    console.log('');
+  });
+}
+
+module.exports = app;
