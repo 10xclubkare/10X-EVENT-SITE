@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>10X Event Hub | Register Team</title>
   <link rel="stylesheet" href="styles.css">
-  
+
   <script>
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
@@ -24,16 +25,32 @@
     sessionStorage.setItem('current_event_id', eventId);
   </script>
 </head>
+
 <body>
-  
+
   <nav class="navbar">
     <a href="dashboard.html" class="brand-logo">10X Event Hub</a>
     <div class="nav-actions">
       <button class="theme-toggle" id="themeToggle" aria-label="Toggle Dark Mode">
-        <svg id="moonIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-        <svg id="sunIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        <svg id="moonIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" class="hidden">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+        <svg id="sunIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" class="hidden">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
       </button>
-      <a href="dashboard.html" class="btn btn-secondary" style="padding: 8px 16px; width: auto; font-size: 0.875rem;">Cancel</a>
+      <a href="dashboard.html" class="btn btn-secondary"
+        style="padding: 8px 16px; width: auto; font-size: 0.875rem;">Cancel</a>
     </div>
   </nav>
 
@@ -42,7 +59,7 @@
     <p>Complete your team registration details below.</p>
 
     <form id="teamRegisterForm" class="card mt-4" style="max-width: 100%;">
-      
+
       <!-- Team Info -->
       <div class="form-section">
         <h3>Team Details <span class="badge required">Required</span></h3>
@@ -132,27 +149,9 @@
         </div>
       </div>
 
-      <!-- Member 5 -->
-      <div class="form-section">
-        <h3>Member 5 Details <span class="badge optional">Optional</span></h3>
-        <div class="form-group"><label>Full Name</label><input type="text" id="m5_name"></div>
-        <div class="form-group"><label>Registration Number</label><input type="text" id="m5_reg"></div>
-        <div class="form-group"><label>Phone Number</label><input type="tel" id="m5_phone"></div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <div class="form-group"><label>Section</label><input type="text" id="m5_sec"></div>
-          <div class="form-group"><label>Department</label><input type="text" id="m5_dept"></div>
-        </div>
-        <div class="form-group">
-          <label>Residency Status</label>
-          <select id="m5_res">
-            <option value="">-- Select --</option>
-            <option value="Hosteller">Hosteller</option>
-            <option value="Day Scholar">Day Scholar</option>
-          </select>
-        </div>
-      </div>
 
-      <button type="submit" class="btn btn-primary" id="proceedBtn">Proceed to Payment</button>
+
+      <button type="submit" class="btn btn-primary" id="proceedBtn">Next</button>
       <div id="errorMsg" class="alert alert-error mt-4" style="display: none;" role="alert"></div>
     </form>
   </div>
@@ -162,7 +161,7 @@
     const themeToggle = document.getElementById('themeToggle');
     const moonIcon = document.getElementById('moonIcon');
     const sunIcon = document.getElementById('sunIcon');
-    
+
     function updateIcons(theme) {
       if (theme === 'dark') {
         moonIcon.classList.add('hidden');
@@ -173,7 +172,7 @@
       }
     }
     updateIcons(savedTheme);
-    
+
     themeToggle.addEventListener('click', () => {
       const currentTheme = document.documentElement.getAttribute('data-theme');
       const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -184,16 +183,16 @@
 
     document.getElementById('teamRegisterForm').addEventListener('submit', (e) => {
       e.preventDefault();
-      
+
       const teamData = {
         teamName: document.getElementById('teamName').value,
         members: []
       };
 
-      // Collect Members 1 to 5
-      for(let i=1; i<=5; i++) {
+      // Collect Members 1 to 4
+      for (let i = 1; i <= 4; i++) {
         const name = document.getElementById(`m${i}_name`).value;
-        if(name) { // If name exists, push as member
+        if (name) { // If name exists, push as member
           teamData.members.push({
             name: name,
             reg: document.getElementById(`m${i}_reg`).value,
@@ -211,4 +210,5 @@
     });
   </script>
 </body>
+
 </html>

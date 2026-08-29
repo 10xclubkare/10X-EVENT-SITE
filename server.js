@@ -17,22 +17,23 @@
 
 const express = require('express');
 const ExcelJS = require('exceljs');
-const QRCode  = require('qrcode');
-const path    = require('path');
-const admin   = require('firebase-admin');
+const QRCode = require('qrcode');
+const path = require('path');
+const admin = require('firebase-admin');
+const { getFirestore } = require('firebase-admin/firestore');
 
 // Load .env if present
-try { require('dotenv').config(); } catch (_) {}
+try { require('dotenv').config(); } catch (_) { }
 
 // ---------------------------------------------------------------------------
 // App Initialisation
 // ---------------------------------------------------------------------------
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Hardcoded Admin Passcode for /controller
-const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || 'b10xCLUB';
+const ADMIN_PASSCODE = (process.env.ADMIN_PASSCODE || 'b10xCLUB').trim();
 
 let db;
 try {
@@ -51,7 +52,7 @@ try {
     // Fallback for local testing if GOOGLE_APPLICATION_CREDENTIALS is set, or default
     admin.initializeApp();
   }
-  db = admin.firestore();
+  db = getFirestore();
 } catch (error) {
   console.error("FIREBASE INITIALIZATION ERROR:", error.message);
   console.error("Please add FIREBASE_SERVICE_ACCOUNT to Vercel Environment Variables.");
@@ -86,7 +87,7 @@ app.post('/api/login', (req, res) => {
  */
 app.post('/api/controller/login', (req, res) => {
   if (!db) return res.status(500).json({ success: false, message: 'Firebase not configured! Add FIREBASE_SERVICE_ACCOUNT to Vercel.' });
-  
+
   const { passcode } = req.body;
   if (passcode === ADMIN_PASSCODE) {
     // Return a dummy token for frontend routing
@@ -138,10 +139,10 @@ app.post('/api/events', async (req, res) => {
       fee,
       max
     };
-    
+
     // Write to Firestore
     await db.collection('events').doc(newEvent.id).set(newEvent);
-    
+
     res.json({ success: true, event: newEvent });
   } catch (err) {
     console.error('[ERROR] Failed to save event to Firestore:', err);
@@ -155,7 +156,7 @@ app.post('/api/events', async (req, res) => {
  */
 app.post('/api/register', async (req, res) => {
   if (!db) return res.status(500).json({ success: false, message: 'Firebase not configured! Add FIREBASE_SERVICE_ACCOUNT to Vercel.' });
-  const { eventId, teamName, members, txnId } = req.body;
+  const { eventId, teamName, members, txnId, paymentScreenshot } = req.body;
 
   if (!teamName || !members || !members[0] || !members[1] || !txnId) {
     return res.status(400).json({
@@ -172,19 +173,20 @@ app.post('/api/register', async (req, res) => {
       eventId: eventId || 'UNKNOWN',
       teamName: teamName,
       txnId: txnId,
+      paymentScreenshot: paymentScreenshot || null,
       timestamp: new Date().toISOString()
     };
-    
-    // Dynamically add members 1-5
-    for(let i=0; i<5; i++) {
+
+    // Dynamically add members 1-4
+    for (let i = 0; i < 4; i++) {
       const m = members[i];
       if (m) {
-        registrationData[`m${i+1}_name`] = m.name;
-        registrationData[`m${i+1}_reg`] = m.reg;
-        registrationData[`m${i+1}_phone`] = m.phone;
-        registrationData[`m${i+1}_sec`] = m.sec;
-        registrationData[`m${i+1}_dept`] = m.dept;
-        registrationData[`m${i+1}_res`] = m.res;
+        registrationData[`m${i + 1}_name`] = m.name;
+        registrationData[`m${i + 1}_reg`] = m.reg;
+        registrationData[`m${i + 1}_phone`] = m.phone;
+        registrationData[`m${i + 1}_sec`] = m.sec;
+        registrationData[`m${i + 1}_dept`] = m.dept;
+        registrationData[`m${i + 1}_res`] = m.res;
       }
     }
 
@@ -227,65 +229,61 @@ app.get('/api/registrations/download', async (req, res) => {
   if (!db) return res.status(500).send('Firebase not configured! Add FIREBASE_SERVICE_ACCOUNT to Vercel.');
   try {
     const snapshot = await db.collection('registrations').orderBy('timestamp', 'desc').get();
-    
+
     if (snapshot.empty) {
       return res.status(404).send('No registrations found yet.');
     }
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Registrations');
-    
+
     sheet.columns = [
-      { header: 'Event ID',      key: 'eventId',   width: 15 },
-      { header: 'Team Name',     key: 'teamName',  width: 25 },
-      { header: 'Txn ID',        key: 'txnId',     width: 20 },
+      { header: 'Event ID', key: 'eventId', width: 15 },
+      { header: 'Team Name', key: 'teamName', width: 25 },
+      { header: 'Txn ID', key: 'txnId', width: 20 },
       // Member 1
-      { header: 'M1 Name',       key: 'm1_name',   width: 20 },
-      { header: 'M1 RegNo',      key: 'm1_reg',    width: 15 },
-      { header: 'M1 Phone',      key: 'm1_phone',  width: 15 },
-      { header: 'M1 Sec',        key: 'm1_sec',    width: 10 },
-      { header: 'M1 Dept',       key: 'm1_dept',   width: 15 },
-      { header: 'M1 Res',        key: 'm1_res',    width: 15 },
+      { header: 'M1 Name', key: 'm1_name', width: 20 },
+      { header: 'M1 RegNo', key: 'm1_reg', width: 15 },
+      { header: 'M1 Phone', key: 'm1_phone', width: 15 },
+      { header: 'M1 Sec', key: 'm1_sec', width: 10 },
+      { header: 'M1 Dept', key: 'm1_dept', width: 15 },
+      { header: 'M1 Res', key: 'm1_res', width: 15 },
       // Member 2
-      { header: 'M2 Name',       key: 'm2_name',   width: 20 },
-      { header: 'M2 RegNo',      key: 'm2_reg',    width: 15 },
-      { header: 'M2 Phone',      key: 'm2_phone',  width: 15 },
-      { header: 'M2 Sec',        key: 'm2_sec',    width: 10 },
-      { header: 'M2 Dept',       key: 'm2_dept',   width: 15 },
-      { header: 'M2 Res',        key: 'm2_res',    width: 15 },
+      { header: 'M2 Name', key: 'm2_name', width: 20 },
+      { header: 'M2 RegNo', key: 'm2_reg', width: 15 },
+      { header: 'M2 Phone', key: 'm2_phone', width: 15 },
+      { header: 'M2 Sec', key: 'm2_sec', width: 10 },
+      { header: 'M2 Dept', key: 'm2_dept', width: 15 },
+      { header: 'M2 Res', key: 'm2_res', width: 15 },
       // Member 3
-      { header: 'M3 Name',       key: 'm3_name',   width: 20 },
-      { header: 'M3 RegNo',      key: 'm3_reg',    width: 15 },
-      { header: 'M3 Phone',      key: 'm3_phone',  width: 15 },
-      { header: 'M3 Sec',        key: 'm3_sec',    width: 10 },
-      { header: 'M3 Dept',       key: 'm3_dept',   width: 15 },
-      { header: 'M3 Res',        key: 'm3_res',    width: 15 },
+      { header: 'M3 Name', key: 'm3_name', width: 20 },
+      { header: 'M3 RegNo', key: 'm3_reg', width: 15 },
+      { header: 'M3 Phone', key: 'm3_phone', width: 15 },
+      { header: 'M3 Sec', key: 'm3_sec', width: 10 },
+      { header: 'M3 Dept', key: 'm3_dept', width: 15 },
+      { header: 'M3 Res', key: 'm3_res', width: 15 },
       // Member 4
-      { header: 'M4 Name',       key: 'm4_name',   width: 20 },
-      { header: 'M4 RegNo',      key: 'm4_reg',    width: 15 },
-      { header: 'M4 Phone',      key: 'm4_phone',  width: 15 },
-      { header: 'M4 Sec',        key: 'm4_sec',    width: 10 },
-      { header: 'M4 Dept',       key: 'm4_dept',   width: 15 },
-      { header: 'M4 Res',        key: 'm4_res',    width: 15 },
-      // Member 5
-      { header: 'M5 Name',       key: 'm5_name',   width: 20 },
-      { header: 'M5 RegNo',      key: 'm5_reg',    width: 15 },
-      { header: 'M5 Phone',      key: 'm5_phone',  width: 15 },
-      { header: 'M5 Sec',        key: 'm5_sec',    width: 10 },
-      { header: 'M5 Dept',       key: 'm5_dept',   width: 15 },
-      { header: 'M5 Res',        key: 'm5_res',    width: 15 },
-      
-      { header: 'Timestamp',     key: 'timestamp', width: 25 }
+      { header: 'M4 Name', key: 'm4_name', width: 20 },
+      { header: 'M4 RegNo', key: 'm4_reg', width: 15 },
+      { header: 'M4 Phone', key: 'm4_phone', width: 15 },
+      { header: 'M4 Sec', key: 'm4_sec', width: 10 },
+      { header: 'M4 Dept', key: 'm4_dept', width: 15 },
+      { header: 'M4 Res', key: 'm4_res', width: 15 },
+
+      { header: 'Screenshot Status', key: 'paymentScreenshotStatus', width: 20 },
+      { header: 'Timestamp', key: 'timestamp', width: 25 }
     ];
     sheet.getRow(1).font = { bold: true };
 
     snapshot.forEach(doc => {
-      sheet.addRow(doc.data());
+      const data = doc.data();
+      data.paymentScreenshotStatus = data.paymentScreenshot ? 'Uploaded' : 'Missing';
+      sheet.addRow(data);
     });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=' + 'registrations_master.xlsx');
-    
+
     await workbook.xlsx.write(res);
     res.end();
   } catch (err) {

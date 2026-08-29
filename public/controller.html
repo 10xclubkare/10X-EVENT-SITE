@@ -58,7 +58,7 @@
           sessionStorage.setItem('klu_admin_token', data.token);
           window.location.href = 'controller-dashboard.html';
         } else {
-          throw new Error('Invalid passcode. Please try again.');
+          throw new Error(data.message || 'Invalid passcode. Please try again.');
         }
       } catch (err) {
         // Handle network error (server completely down)

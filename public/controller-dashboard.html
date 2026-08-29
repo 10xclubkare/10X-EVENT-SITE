@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>10X Event Hub | Controller Dashboard</title>
   <link rel="stylesheet" href="styles.css">
-  
+
   <script>
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
@@ -16,32 +17,49 @@
     }
   </script>
 </head>
+
 <body>
-  
+
   <nav class="navbar">
     <a href="controller-dashboard.html" class="brand-logo">10X Controller</a>
     <div class="nav-actions">
       <span class="user-badge" style="background-color: rgba(255, 59, 48, 0.1); color: var(--error-color);">Admin</span>
       <button class="theme-toggle" id="themeToggle" aria-label="Toggle Dark Mode">
-        <svg id="moonIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-        <svg id="sunIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        <svg id="moonIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" class="hidden">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+        <svg id="sunIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" class="hidden">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
       </button>
-      <button id="logoutBtn" class="btn btn-secondary" style="padding: 8px 16px; width: auto; font-size: 0.875rem;">Exit</button>
+      <button id="logoutBtn" class="btn btn-secondary"
+        style="padding: 8px 16px; width: auto; font-size: 0.875rem;">Exit</button>
     </div>
   </nav>
 
   <div class="container slide-up" style="max-width: 900px;">
-    
+
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
       <h2>System Overview</h2>
-      <a href="/api/registrations/download" class="btn btn-primary" style="width: auto;" target="_blank">📥 Download Master Data</a>
+      <a href="/api/registrations/download" class="btn btn-primary" style="width: auto;" target="_blank">📥 Download
+        Master Data</a>
     </div>
 
     <!-- Create Event Card -->
     <div class="card" style="max-width: 100%; margin-bottom: 40px;">
       <h3>Create New Event</h3>
       <p>Publish a new event to the student dashboard.</p>
-      
+
       <form id="createEventForm" class="mt-4">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
           <div class="form-group">
@@ -81,7 +99,7 @@
     const themeToggle = document.getElementById('themeToggle');
     const moonIcon = document.getElementById('moonIcon');
     const sunIcon = document.getElementById('sunIcon');
-    
+
     function updateIcons(theme) {
       if (theme === 'dark') {
         moonIcon.classList.add('hidden');
@@ -92,7 +110,7 @@
       }
     }
     updateIcons(savedTheme);
-    
+
     themeToggle.addEventListener('click', () => {
       const currentTheme = document.documentElement.getAttribute('data-theme');
       const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -111,7 +129,7 @@
       e.preventDefault();
       const btn = document.getElementById('createBtn');
       const statusMsg = document.getElementById('statusMsg');
-      
+
       const title = document.getElementById('eventTitle').value;
       const date = document.getElementById('eventDate').value;
       const fee = document.getElementById('eventFee').value;
@@ -124,19 +142,22 @@
         const token = sessionStorage.getItem('klu_admin_token');
         const res = await fetch('/api/events', {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({ title, date, fee, max })
         });
-        
-        if (!res.ok) throw new Error('Failed to create event');
-        
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => null);
+          throw new Error(errData?.message || 'Failed to create event');
+        }
+
         statusMsg.className = 'alert alert-success mt-4';
         statusMsg.innerText = 'Event created successfully!';
         statusMsg.style.display = 'block';
-        
+
         document.getElementById('createEventForm').reset();
         loadEvents(); // refresh the grid
       } catch (err) {
@@ -156,7 +177,7 @@
       try {
         const res = await fetch('/api/events');
         if (!res.ok) throw new Error('Failed to load events');
-        
+
         const data = await res.json();
         const events = data.events || [];
 
@@ -184,4 +205,5 @@
     loadEvents();
   </script>
 </body>
+
 </html>

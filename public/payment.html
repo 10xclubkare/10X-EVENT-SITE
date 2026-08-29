@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>10X Event Hub | Payment</title>
   <link rel="stylesheet" href="styles.css">
-  
+
   <script>
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
@@ -15,16 +16,32 @@
     }
   </script>
 </head>
+
 <body>
-  
+
   <nav class="navbar">
     <a href="dashboard.html" class="brand-logo">10X Event Hub</a>
     <div class="nav-actions">
       <button class="theme-toggle" id="themeToggle" aria-label="Toggle Dark Mode">
-        <svg id="moonIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-        <svg id="sunIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        <svg id="moonIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" class="hidden">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+        <svg id="sunIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" class="hidden">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
       </button>
-      <a href="register.html" class="btn btn-secondary" style="padding: 8px 16px; width: auto; font-size: 0.875rem;">Back</a>
+      <a href="register.html" class="btn btn-secondary"
+        style="padding: 8px 16px; width: auto; font-size: 0.875rem;">Back</a>
     </div>
   </nav>
 
@@ -38,12 +55,22 @@
       </div>
 
       <form id="paymentForm" class="mt-4" novalidate>
+        <div class="form-group" style="margin-bottom: 24px;">
+          <label for="paymentScreenshot" style="margin-bottom: 8px;">Payment Screenshot <span class="badge required"
+              style="font-size: 0.75rem;">Required</span></label>
+          <input type="file" id="paymentScreenshot" accept="image/png, image/jpeg, image/jpg" required
+            style="width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: rgba(255,255,255,0.05); padding: 8px; color: var(--text-primary); cursor: pointer;" />
+          <img id="screenshotPreview" src="" alt="Screenshot Preview"
+            style="display: none; width: 100%; max-height: 250px; object-fit: contain; margin-top: 12px; border-radius: var(--radius-md); border: 1px dashed var(--border-color);">
+        </div>
+
         <div class="form-group">
           <label for="txnId">UPI Transaction ID / UTR</label>
-          <input type="text" id="txnId" required placeholder="e.g. 123456789012" style="text-align: center;">
+          <input type="text" id="txnId" required placeholder="Enter your payment transaction ID"
+            style="text-align: center;">
         </div>
-        
-        <button type="submit" class="btn btn-primary" id="confirmBtn">Confirm Payment</button>
+
+        <button type="submit" class="btn btn-primary" id="confirmBtn">Register</button>
         <div id="errorMsg" class="alert alert-error mt-4" style="display: none;" role="alert"></div>
       </form>
     </div>
@@ -54,7 +81,7 @@
     const themeToggle = document.getElementById('themeToggle');
     const moonIcon = document.getElementById('moonIcon');
     const sunIcon = document.getElementById('sunIcon');
-    
+
     function updateIcons(theme) {
       if (theme === 'dark') {
         moonIcon.classList.add('hidden');
@@ -65,7 +92,7 @@
       }
     }
     updateIcons(savedTheme);
-    
+
     themeToggle.addEventListener('click', () => {
       const currentTheme = document.documentElement.getAttribute('data-theme');
       const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -74,14 +101,41 @@
       updateIcons(newTheme);
     });
 
+    const fileInput = document.getElementById('paymentScreenshot');
+    const preview = document.getElementById('screenshotPreview');
+    let paymentScreenshotBase64 = null;
+
+    fileInput.addEventListener('change', function () {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+          paymentScreenshotBase64 = e.target.result;
+        }
+        reader.readAsDataURL(file);
+      } else {
+        preview.src = "";
+        preview.style.display = 'none';
+        paymentScreenshotBase64 = null;
+      }
+    });
+
     document.getElementById('paymentForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      
+
       const txnId = document.getElementById('txnId').value.trim();
       const errorMsg = document.getElementById('errorMsg');
       const btn = document.getElementById('confirmBtn');
-      
+
       errorMsg.style.display = 'none';
+
+      if (!paymentScreenshotBase64) {
+        errorMsg.innerText = 'Please upload a valid payment screenshot.';
+        errorMsg.style.display = 'block';
+        return;
+      }
 
       if (!txnId) {
         errorMsg.innerText = 'Please enter a valid Transaction ID.';
@@ -100,7 +154,8 @@
           eventId: eventId,
           teamName: teamData.teamName,
           members: teamData.members,
-          txnId: txnId
+          txnId: txnId,
+          paymentScreenshot: paymentScreenshotBase64
         };
 
         const res = await fetch('/api/register', {
@@ -127,4 +182,5 @@
     });
   </script>
 </body>
+
 </html>
