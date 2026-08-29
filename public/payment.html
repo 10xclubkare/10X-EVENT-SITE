@@ -51,7 +51,14 @@
       <p>Scan the QR code below using any UPI app to pay the team registration fee.</p>
 
       <div style="background: white; padding: 20px; border-radius: 12px; display: inline-block; margin: 20px 0;">
-        <img src="qr_static.png" alt="Payment QR Code" style="width: 200px; height: 200px; object-fit: contain;">
+        <img src="/qr_static.png?v=2" alt="Payment QR Code"
+          style="width: 220px; height: 220px; object-fit: contain; display: block;"
+          onerror="this.style.display='none'; document.getElementById('qrPlaceholder').style.display='flex';">
+        <div id="qrPlaceholder"
+          style="display:none; width:220px; height:220px; border: 2px dashed var(--border-color); border-radius: 12px; align-items:center; justify-content:center; flex-direction:column; gap:8px; color: var(--text-secondary); font-size: 0.85rem; text-align:center; padding:16px;">
+          <span style="font-size:2rem;">📷</span>
+          QR code not found.<br>Save your QR image as<br><strong>public/qr_static.png</strong>
+        </div>
       </div>
 
       <form id="paymentForm" class="mt-4" novalidate>
@@ -163,6 +170,11 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
+
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          throw new Error('Server error. Make sure the server is running correctly.');
+        }
 
         const data = await res.json();
 

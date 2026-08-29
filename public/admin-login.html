@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>10X Event Hub | Controller</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    :root {
+      --admin-bg-gradient: linear-gradient(135deg, #09090b 0%, #1e1b4b 100%);
+      --admin-card-bg: rgba(17, 24, 39, 0.7);
+      --admin-border: rgba(255, 255, 255, 0.1);
+      --admin-accent: #6366f1;
+      --admin-accent-hover: #4f46e5;
+      --admin-text: #f9fafb;
+      --admin-text-muted: #9ca3af;
+    }
+
+    body {
+      background: var(--admin-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Inter', system-ui, sans-serif;
+      margin: 0;
+      color: var(--admin-text);
+      overflow: hidden;
+    }
+
+    .bg-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    .blob-1 {
+      width: 400px;
+      height: 400px;
+      background: rgba(99, 102, 241, 0.3);
+      top: -100px;
+      left: -100px;
+    }
+
+    .blob-2 {
+      width: 500px;
+      height: 500px;
+      background: rgba(139, 92, 246, 0.2);
+      bottom: -150px;
+      right: -150px;
+    }
+
+    .admin-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 420px;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .admin-card {
+      background: var(--admin-card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--admin-border);
+      border-radius: 20px;
+      padding: 40px 32px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+      animation: formSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes formSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .admin-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .security-icon {
+      width: 54px;
+      height: 54px;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      color: var(--admin-accent);
+    }
+
+    .badge-admin {
+      display: inline-block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-weight: 600;
+      color: var(--admin-accent);
+      margin-bottom: 12px;
+    }
+
+    .admin-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: -0.025em;
+      background: linear-gradient(to right, #ffffff, #a5b4fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .admin-form-group {
+      margin-bottom: 24px;
+      text-align: left;
+    }
+
+    .admin-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--admin-text-muted);
+      margin-bottom: 8px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 16px;
+      color: var(--admin-text-muted);
+      width: 18px;
+      height: 18px;
+    }
+
+    .admin-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--admin-border);
+      color: var(--admin-text);
+      padding: 14px 16px 14px 44px;
+      border-radius: 12px;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+      outline: none;
+    }
+
+    .admin-input:focus {
+      border-color: var(--admin-accent);
+      background: rgba(0, 0, 0, 0.4);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+    }
+
+    .admin-input::placeholder {
+      color: rgba(156, 163, 175, 0.5);
+    }
+
+    .admin-btn {
+      width: 100%;
+      background: linear-gradient(to right, var(--admin-accent), #818cf8);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .admin-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    .admin-btn:active {
+      transform: translateY(1px);
+    }
+
+    .admin-btn.loading {
+      color: transparent;
+      pointer-events: none;
+    }
+
+    .admin-btn.loading::after {
+      content: "";
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      top: 50%;
+      left: 50%;
+      margin-top: -10px;
+      margin-left: -10px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .admin-error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      margin-top: 20px;
+      display: none;
+      text-align: left;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="bg-blob blob-1"></div>
+  <div class="bg-blob blob-2"></div>
+
+  <div class="admin-container">
+    <div class="admin-card">
+
+      <div class="admin-header">
+        <div class="security-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
+        <div class="badge-admin">Controller Access</div>
+        <h1 class="admin-title">Admin Authentication</h1>
+      </div>
+
+      <form id="controllerForm" novalidate>
+        <div class="admin-form-group">
+          <label class="admin-label" for="passcode">Access Passcode</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4">
+              </path>
+            </svg>
+            <input type="password" id="passcode" class="admin-input" required autocomplete="current-password"
+              placeholder="Enter secure passcode">
+          </div>
+        </div>
+
+        <button type="submit" class="admin-btn" id="loginBtn">Unlock System</button>
+        <div id="errorMsg" class="admin-error" role="alert"></div>
+      </form>
+
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('controllerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const passcode = document.getElementById('passcode').value;
+      const errorMsg = document.getElementById('errorMsg');
+      const btn = document.getElementById('loginBtn');
+
+      errorMsg.style.display = 'none';
+      btn.classList.add('loading');
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ passcode })
+        });
+
+        // Guard: check response is JSON before parsing
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          throw new Error('Server is not running. Start it with: node server.js');
+        }
+
+        const data = await res.json();
+        if (data.success) {
+          sessionStorage.setItem('klu_admin_token', data.token);
+          window.location.href = '/admin';
+        } else {
+          throw new Error(data.message || 'Invalid passcode. Please try again.');
+        }
+      } catch (err) {
+        // Handle network error (server completely down)
+        if (err.name === 'TypeError' && err.message.includes('fetch')) {
+          errorMsg.innerText = 'Cannot connect to server. Make sure node server.js is running.';
+        } else {
+          errorMsg.innerText = err.message;
+        }
+        errorMsg.style.display = 'block';
+      } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+
+</html>

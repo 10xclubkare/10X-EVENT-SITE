@@ -19,7 +19,7 @@ const express = require('express');
 const ExcelJS = require('exceljs');
 const QRCode = require('qrcode');
 const path = require('path');
-const admin = require('firebase-admin');
+const { initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
 
 // Load .env if present
@@ -32,7 +32,7 @@ try { require('dotenv').config(); } catch (_) { }
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Hardcoded Admin Passcode for /controller
+// Hardcoded Admin Passcode for /admin
 const ADMIN_PASSCODE = (process.env.ADMIN_PASSCODE || 'b10xCLUB').trim();
 
 let db;
@@ -41,16 +41,16 @@ try {
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     try {
       const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+      initializeApp({
+        credential: cert(serviceAccount)
       });
     } catch (err) {
       console.error('Error parsing FIREBASE_SERVICE_ACCOUNT. Make sure it is valid JSON.', err);
-      admin.initializeApp();
+      initializeApp();
     }
   } else {
     // Fallback for local testing if GOOGLE_APPLICATION_CREDENTIALS is set, or default
-    admin.initializeApp();
+    initializeApp();
   }
   db = getFirestore();
 } catch (error) {
@@ -58,9 +58,22 @@ try {
   console.error("Please add FIREBASE_SERVICE_ACCOUNT to Vercel Environment Variables.");
 }
 
-// Middleware
-app.use(express.json());
+// Middleware — 10mb limit supports Base64 payment screenshot uploads
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ---------------------------------------------------------------------------
+// HTML Pages Routing
+// ---------------------------------------------------------------------------
+
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+app.get('/admin/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin-login.html'));
+});
 
 // ---------------------------------------------------------------------------
 // API Endpoints
@@ -82,10 +95,10 @@ app.post('/api/login', (req, res) => {
 });
 
 /**
- * POST /api/controller/login
+ * POST /api/admin/login
  * Validates the admin passcode. In a real app, use sessions/JWT.
  */
-app.post('/api/controller/login', (req, res) => {
+app.post('/api/admin/login', (req, res) => {
   if (!db) return res.status(500).json({ success: false, message: 'Firebase not configured! Add FIREBASE_SERVICE_ACCOUNT to Vercel.' });
 
   const { passcode } = req.body;

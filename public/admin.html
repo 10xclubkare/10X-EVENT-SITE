@@ -13,7 +13,7 @@
 
     // Protect route
     if (!sessionStorage.getItem('klu_admin_token')) {
-      window.location.href = 'controller.html';
+      window.location.href = '/admin/login';
     }
   </script>
 </head>
@@ -21,7 +21,7 @@
 <body>
 
   <nav class="navbar">
-    <a href="controller-dashboard.html" class="brand-logo">10X Controller</a>
+    <a href="/admin" class="brand-logo">10X Controller</a>
     <div class="nav-actions">
       <span class="user-badge" style="background-color: rgba(255, 59, 48, 0.1); color: var(--error-color);">Admin</span>
       <button class="theme-toggle" id="themeToggle" aria-label="Toggle Dark Mode">
@@ -121,7 +121,7 @@
 
     document.getElementById('logoutBtn').addEventListener('click', () => {
       sessionStorage.removeItem('klu_admin_token');
-      window.location.href = 'index.html';
+      window.location.href = '/admin/login';
     });
 
     // Create Event
