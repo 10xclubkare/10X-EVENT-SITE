@@ -66,7 +66,56 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ---------------------------------------------------------------------------
-// HTML Pages Routing
+// API Enpoints: QR Scanner
+// ---------------------------------------------------------------------------
+
+app.post('/api/verify-team', async (req, res) => {
+  if (!db) return res.status(500).json({ success: false, message: 'Firebase not configured' });
+  if (req.headers.authorization !== 'Bearer controller-access-token-777') {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+
+  const { txnId } = req.body;
+  if (!txnId) {
+    return res.status(400).json({ success: false, message: 'Invalid or missing Transaction ID in QR pass' });
+  }
+
+  try {
+    const snapshot = await db.collection('registrations').where('txnId', '==', txnId).get();
+
+    if (snapshot.empty) {
+      return res.json({ success: true, registered: false, message: 'Invalid Pass' });
+    }
+
+    const teamData = snapshot.docs[0].data();
+
+    // Extract formatted members array
+    const members = [];
+    for (let i = 1; i <= 4; i++) {
+      if (teamData[`m${i}_name`]) {
+        members.push(teamData[`m${i}_name`]);
+      }
+    }
+
+    return res.json({
+      success: true,
+      registered: true,
+      team: {
+        id: snapshot.docs[0].id,
+        name: teamData.teamName,
+        members: members,
+        status: 'REGISTERED'
+      }
+    });
+
+  } catch (error) {
+    console.error('Error verifying team:', error);
+    res.status(500).json({ success: false, message: 'Database error' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// HTML Endpoints (Waitlisted structure)
 // ---------------------------------------------------------------------------
 
 app.get('/admin', (req, res) => {

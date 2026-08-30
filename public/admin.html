@@ -16,6 +16,7 @@
       window.location.href = 'controller.html';
     }
   </script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 
 <body>
@@ -51,8 +52,11 @@
 
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
       <h2>System Overview</h2>
-      <a href="/api/registrations/download" class="btn btn-primary" style="width: auto;" target="_blank">📥 Download
-        Master Data</a>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <button id="openScannerBtn" class="btn btn-secondary" style="width: auto;">📷 QR Scanner</button>
+        <a href="/api/registrations/download" class="btn btn-primary" style="width: auto;" target="_blank">📥 Download
+          Master Data</a>
+      </div>
     </div>
 
     <!-- Create Event Card -->
@@ -84,6 +88,34 @@
         <button type="submit" class="btn btn-primary" id="createBtn">Publish Event</button>
         <div id="statusMsg" class="mt-4" style="display: none;"></div>
       </form>
+    </div>
+
+    <!-- QR Scanner Modal -->
+    <div id="scannerModal"
+      style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+      <div class="card" style="width: 90%; max-width: 450px; position: relative;">
+        <button id="closeScannerBtn"
+          style="position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-color);">&times;</button>
+        <h3 style="margin-bottom: 16px; text-align: center;">Verify Digital Pass</h3>
+
+        <!-- Scanner View -->
+        <div id="scannerView">
+          <div id="qr-reader"
+            style="width: 100%; margin-bottom: 16px; border-radius: 12px; overflow: hidden; background: white;"></div>
+          <p style="text-align: center; color: var(--text-secondary); font-size: 0.875rem;">Align the team's QR code
+            within the frame to verify registration.</p>
+        </div>
+
+        <!-- Result View -->
+        <div id="scannerResult" style="display: none; text-align: center;">
+          <div id="resultIcon" style="font-size: 3rem; margin-bottom: 16px;"></div>
+          <h2 id="resultTitle" style="margin-bottom: 12px;"></h2>
+          <div id="resultDetails"
+            style="background: rgba(0,0,0,0.2); padding: 16px; border-radius: 8px; text-align: left; margin-bottom: 24px; font-size: 0.95rem; line-height: 1.6;">
+          </div>
+          <button id="scanAgainBtn" class="btn btn-primary">Scan Another Pass</button>
+        </div>
+      </div>
     </div>
 
     <!-- Existing Events -->
@@ -203,6 +235,103 @@
     }
 
     loadEvents();
+
+    // ---------------------------------------------------------
+    // QR Code Scanner Logic
+    // ---------------------------------------------------------
+    const scannerModal = document.getElementById('scannerModal');
+    const openScannerBtn = document.getElementById('openScannerBtn');
+    const closeScannerBtn = document.getElementById('closeScannerBtn');
+    const scannerView = document.getElementById('scannerView');
+    const scannerResult = document.getElementById('scannerResult');
+    const scanAgainBtn = document.getElementById('scanAgainBtn');
+
+    let html5QrcodeScanner;
+
+    function renderResult(success, data, msg) {
+      scannerView.style.display = 'none';
+      scannerResult.style.display = 'block';
+      const icon = document.getElementById('resultIcon');
+      const title = document.getElementById('resultTitle');
+      const details = document.getElementById('resultDetails');
+
+      if (success && data.registered) {
+        icon.innerHTML = '✅';
+        title.innerText = 'TEAM VERIFIED';
+        title.style.color = '#10b981';
+
+        const membersHtml = data.team.members.map((m, i) => `<div>${i + 1}. ${m}</div>`).join('');
+        details.innerHTML = `
+          <strong>Team Name:</strong> ${data.team.name}<br>
+          <strong>Team ID:</strong> ${data.team.id}<br><br>
+          <strong>Members:</strong><br>
+          ${membersHtml}<br><br>
+          <strong>Registration Status:</strong> <span class="badge required" style="background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid #10b981;">REGISTERED</span>
+        `;
+      } else {
+        icon.innerHTML = '❌';
+        title.innerText = 'INVALID PASS';
+        title.style.color = '#ef4444';
+        details.innerHTML = `<div style="text-align:center;">${msg || 'This QR code does not belong to a registered team.'}</div>`;
+      }
+    }
+
+    async function onScanSuccess(decodedText, decodedResult) {
+      if (html5QrcodeScanner) html5QrcodeScanner.pause();
+
+      try {
+        const qrData = JSON.parse(decodedText);
+        if (!qrData.txnId) throw new Error('Invalid Format');
+
+        const token = sessionStorage.getItem('klu_admin_token');
+        const res = await fetch('/api/verify-team', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ txnId: qrData.txnId })
+        });
+
+        const data = await res.json();
+        renderResult(data.success, data, data.message);
+      } catch (err) {
+        renderResult(false, null, 'Invalid QR Code structure or missing internal transaction reference.');
+      }
+    }
+
+    function initScanner() {
+      scannerView.style.display = 'block';
+      scannerResult.style.display = 'none';
+
+      if (!html5QrcodeScanner) {
+        // Only load standard QR codes quickly
+        html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
+        html5QrcodeScanner.render(onScanSuccess, () => { });
+      } else {
+        html5QrcodeScanner.resume();
+      }
+    }
+
+    openScannerBtn.addEventListener('click', () => {
+      scannerModal.style.display = 'flex';
+      initScanner();
+    });
+
+    closeScannerBtn.addEventListener('click', () => {
+      scannerModal.style.display = 'none';
+      if (html5QrcodeScanner) {
+        try { html5QrcodeScanner.pause(); } catch (e) { }
+      }
+    });
+
+    scanAgainBtn.addEventListener('click', () => {
+      scannerView.style.display = 'block';
+      scannerResult.style.display = 'none';
+      if (html5QrcodeScanner) {
+        try { html5QrcodeScanner.resume(); } catch (e) { }
+      }
+    });
   </script>
 </body>
 
