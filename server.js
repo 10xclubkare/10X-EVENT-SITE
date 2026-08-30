@@ -258,21 +258,13 @@ app.post('/api/register', async (req, res) => {
     // ------------------------------------------------------------------
     // Step 2: Generate Ticket QR Code
     // ------------------------------------------------------------------
-    const ticketPayload = JSON.stringify({
-      teamName,
-      leaderName: members[0].name,
-      leaderPhone: members[0].phone,
-      memberCount: members.length,
-      eventId,
-      txnId,
-      valid: true
-    });
+    const ticketPayload = JSON.stringify({ txnId });
 
+    // Ensure high contrast and sharp resolution using QRCode library configuration
     const qrCodeUrl = await QRCode.toDataURL(ticketPayload, {
-      errorCorrectionLevel: 'M',
+      width: 400,
       margin: 2,
-      width: 300,
-      color: { dark: '#1d1d1f', light: '#ffffff' }
+      color: { dark: '#000000', light: '#ffffff' }
     });
 
     res.json({ success: true, qrCodeUrl });

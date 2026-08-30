@@ -1,53 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>10X Event Hub | Digital Pass</title>
   <link rel="stylesheet" href="styles.css">
-  
+
   <script>
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
 
     const qrCodeUrl = sessionStorage.getItem('qrCodeUrl');
     const teamPayloadStr = sessionStorage.getItem('pending_team_payload');
+    const teamTxnId = sessionStorage.getItem('team_txn_id') || '';
     if (!qrCodeUrl || !teamPayloadStr) {
       window.location.href = 'index.html';
     }
     const teamData = JSON.parse(teamPayloadStr);
+    teamData.txnId = teamTxnId;
   </script>
 </head>
+
 <body>
-  
+
   <nav class="navbar">
     <a href="dashboard.html" class="brand-logo">10X Event Hub</a>
     <div class="nav-actions">
       <button class="theme-toggle" id="themeToggle" aria-label="Toggle Dark Mode">
-        <svg id="moonIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-        <svg id="sunIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        <svg id="moonIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" class="hidden">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+        <svg id="sunIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" class="hidden">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
       </button>
-      <button id="logoutBtn" class="btn btn-secondary" style="padding: 8px 16px; width: auto; font-size: 0.875rem;">Done</button>
+      <button id="logoutBtn" class="btn btn-secondary"
+        style="padding: 8px 16px; width: auto; font-size: 0.875rem;">Done</button>
     </div>
   </nav>
 
-  <div class="container slide-up">
-    <div class="card text-center">
+  <div class="container slide-up" style="max-width: 1000px; width: 95%;">
+    <div class="card text-center" style="max-width: 100%;">
       <div class="badge required" style="display: inline-block; margin-bottom: 16px;">Registration Confirmed</div>
       <h2>Digital Pass</h2>
-      <p>Save this QR code for venue verification.</p>
+      <p>Save this pass for venue verification.</p>
 
-      <div style="background: white; padding: 20px; border-radius: 12px; display: inline-block; margin: 20px 0;">
-        <img id="qrImage" src="" alt="Ticket QR Code" style="width: 250px; height: 250px; object-fit: contain;">
+      <!-- Hidden canvas for mathematically composing the pass -->
+      <canvas id="passCanvas" style="display: none;"></canvas>
+
+      <!-- Display the synthesized pass to the user -->
+      <div style="margin: 20px 0; display: flex; justify-content: center; width: 100%;">
+        <img id="passPreview" src="" alt="Processing Digital Pass..."
+          style="width: 100%; max-width: 900px; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
       </div>
 
-      <div style="text-align: left; background-color: rgba(134, 134, 139, 0.05); padding: 20px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-        <h3 style="margin-bottom: 12px; font-size: 1.1rem;" id="ticketTeamName">Team Name</h3>
-        <p style="margin: 0; font-size: 0.875rem; color: var(--text-primary);"><strong style="color: var(--text-secondary)">Leader:</strong> <span id="ticketLeader"></span></p>
-        <p style="margin: 8px 0 0 0; font-size: 0.875rem; color: var(--text-primary);"><strong style="color: var(--text-secondary)">Members:</strong> <span id="ticketCount"></span> total</p>
-      </div>
-
-      <button id="downloadBtn" class="btn btn-primary mt-4">Download Pass</button>
+      <button id="downloadBtn" class="btn btn-primary mt-4" disabled>Generating Pass...</button>
     </div>
   </div>
 
@@ -56,7 +74,7 @@
     const themeToggle = document.getElementById('themeToggle');
     const moonIcon = document.getElementById('moonIcon');
     const sunIcon = document.getElementById('sunIcon');
-    
+
     function updateIcons(theme) {
       if (theme === 'dark') {
         moonIcon.classList.add('hidden');
@@ -67,7 +85,7 @@
       }
     }
     updateIcons(savedTheme);
-    
+
     themeToggle.addEventListener('click', () => {
       const currentTheme = document.documentElement.getAttribute('data-theme');
       const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -76,28 +94,127 @@
       updateIcons(newTheme);
     });
 
-    // Populate data
-    document.getElementById('qrImage').src = qrCodeUrl;
-    document.getElementById('ticketTeamName').innerText = teamData.teamName;
-    document.getElementById('ticketLeader').innerText = teamData.members[0].name;
-    document.getElementById('ticketCount').innerText = teamData.members.length;
+    // -------------------------------------------------------------
+    // CANVAS TICKETING COMPOSITION
+    // -------------------------------------------------------------
+    const canvas = document.getElementById('passCanvas');
+    const ctx = canvas.getContext('2d');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const passPreview = document.getElementById('passPreview');
 
-    // Download functionality
-    document.getElementById('downloadBtn').addEventListener('click', () => {
-      const a = document.createElement('a');
-      a.href = qrCodeUrl;
-      a.download = `${teamData.teamName.replace(/\s+/g, '_')}_Ticket.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    });
+    // 1. Load the background template locally
+    const templateImg = new Image();
+    templateImg.crossOrigin = "Anonymous";
+
+    // Fallback handler if user uploads .jpg instead of .png
+    let templateExt = 'png';
+    templateImg.onerror = function () {
+      if (templateExt === 'png') {
+        templateExt = 'jpg';
+        templateImg.src = 'ticket_template.jpg';
+      } else if (templateExt === 'jpg') {
+        templateExt = 'jpeg';
+        templateImg.src = 'ticket_template.jpeg';
+      } else {
+        alert("Template image not found! Please ensure you saved the ticket_template image in the public directory.");
+      }
+    };
+
+    templateImg.onload = function () {
+      // Sync mathematical constraints purely to the provided image boundaries
+      canvas.width = templateImg.naturalWidth;
+      canvas.height = templateImg.naturalHeight;
+
+      // Paint Background layer
+      ctx.drawImage(templateImg, 0, 0);
+
+      // 2. Fetch Base64 QR Image Layer
+      const qrImg = new Image();
+      qrImg.crossOrigin = "Anonymous";
+      qrImg.src = qrCodeUrl;
+
+      qrImg.onload = function () {
+        // -------------------------------------------------------
+        // QR Code — fitted precisely to the bordered QR placeholder
+        // Template analysis: stub at 72.8%, QR box at 74%-97% x, 17%-69% y
+        // -------------------------------------------------------
+        const stubStartX = canvas.width * 0.728;
+        const stubWidth = canvas.width - stubStartX;
+        const qrPad = stubWidth * 0.06;         // small inner margin matching template border
+        const qrSize = stubWidth - (qrPad * 2);  // fill the QR box width
+        const qrX = stubStartX + qrPad;
+        const qrY = canvas.height * 0.175;    // top of QR placeholder (~17.5%)
+        ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+
+        // -------------------------------------------------------
+        // TEAM NAME — bottom-left section of main ticket body
+        // Template: "[TEAM NAME]" placeholder at ~x=7%, y=83%
+        // -------------------------------------------------------
+        const teamNameText = teamData.teamName.toUpperCase();
+        const txnIdText = (teamData.txnId || '').substring(0, 12).toUpperCase();
+
+        ctx.fillStyle = '#FFD700';   // Golden
+        ctx.font = `bold ${canvas.height * 0.048}px "Courier New", monospace`;
+        ctx.textAlign = 'left';
+        ctx.shadowColor = 'rgba(255, 215, 0, 0.35)';
+        ctx.shadowBlur = 8;
+
+        ctx.fillText(teamNameText, canvas.width * 0.07, canvas.height * 0.795);
+
+        // -------------------------------------------------------
+        // TEAM ID — bottom-right section of main ticket body
+        // Template: "[TEAM ID]" placeholder at ~x=44%, y=79.5%
+        // -------------------------------------------------------
+        ctx.fillText(txnIdText, canvas.width * 0.445, canvas.height * 0.795);
+
+        // -------------------------------------------------------
+        // SIDE STUB — smaller Team ID text below QR
+        // Template shows "TEAM ID: [val]" at ~x=77%, y=81%
+        // -------------------------------------------------------
+        // Side stub — clip to stub region to prevent overflow
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(stubStartX, 0, stubWidth, canvas.height);
+        ctx.clip();
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#FFD700';
+        ctx.font = `bold ${canvas.height * 0.028}px "Courier New", monospace`;
+        ctx.fillText(txnIdText, stubStartX + stubWidth * 0.06, canvas.height * 0.845);
+
+        ctx.restore();
+
+        // -------------------------------------------------------------
+        // OUTPUT COMPOSITION
+        // -------------------------------------------------------------
+        const finalImageBlob = canvas.toDataURL('image/png');
+        passPreview.src = finalImageBlob;
+
+        downloadBtn.innerText = 'DOWNLOAD DIGITAL PASS';
+        downloadBtn.disabled = false;
+
+        downloadBtn.onclick = function () {
+          const a = document.createElement('a');
+          a.href = finalImageBlob;
+          a.download = `Digital_Pass_${teamData.teamName.replace(/\s+/g, '_')}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        };
+      };
+    };
+
+    // Instantiate sequence
+    templateImg.src = 'ticket_template.png';
 
     document.getElementById('logoutBtn').addEventListener('click', () => {
       sessionStorage.removeItem('pending_team_payload');
       sessionStorage.removeItem('qrCodeUrl');
       sessionStorage.removeItem('current_event_id');
+      sessionStorage.removeItem('team_txn_id');
       window.location.href = 'dashboard.html';
     });
   </script>
 </body>
+
 </html>

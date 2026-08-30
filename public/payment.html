@@ -180,6 +180,7 @@
 
         if (data.success) {
           sessionStorage.setItem('qrCodeUrl', data.qrCodeUrl);
+          sessionStorage.setItem('team_txn_id', txnId);
           window.location.href = 'ticket.html';
         } else {
           throw new Error(data.message || 'Registration failed.');
