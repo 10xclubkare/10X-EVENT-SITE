@@ -19,6 +19,7 @@ const express = require('express');
 const ExcelJS = require('exceljs');
 const QRCode = require('qrcode');
 const path = require('path');
+const crypto = require('crypto');
 const { initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
 
@@ -32,8 +33,9 @@ try { require('dotenv').config(); } catch (_) { }
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Hardcoded Admin Passcode for /admin
-const ADMIN_PASSCODE = (process.env.ADMIN_PASSCODE || 'b10xCLUB').trim();
+// Hashed Admin Passcode for authorization
+const rawPasscode = (process.env.ADMIN_PASSCODE || 'b10xCLUB').trim();
+const ADMIN_PASSCODE_HASH = crypto.createHash('sha256').update(rawPasscode).digest('hex');
 
 let db;
 try {
@@ -71,10 +73,6 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-app.get('/admin/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin-login.html'));
-});
-
 // ---------------------------------------------------------------------------
 // API Endpoints
 // ---------------------------------------------------------------------------
@@ -102,7 +100,9 @@ app.post('/api/admin/login', (req, res) => {
   if (!db) return res.status(500).json({ success: false, message: 'Firebase not configured! Add FIREBASE_SERVICE_ACCOUNT to Vercel.' });
 
   const { passcode } = req.body;
-  if (passcode === ADMIN_PASSCODE) {
+  const inputHash = crypto.createHash('sha256').update(passcode || '').digest('hex');
+
+  if (inputHash === ADMIN_PASSCODE_HASH) {
     // Return a dummy token for frontend routing
     return res.json({ success: true, token: 'controller-access-token-777' });
   }

@@ -13,7 +13,7 @@
 
     // Protect route
     if (!sessionStorage.getItem('klu_admin_token')) {
-      window.location.href = '/admin/login';
+      window.location.href = 'controller.html';
     }
   </script>
 </head>
@@ -121,7 +121,7 @@
 
     document.getElementById('logoutBtn').addEventListener('click', () => {
       sessionStorage.removeItem('klu_admin_token');
-      window.location.href = '/admin/login';
+      window.location.href = 'controller.html';
     });
 
     // Create Event
