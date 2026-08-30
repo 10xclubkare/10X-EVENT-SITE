@@ -16,6 +16,10 @@
       "destination": "/server.js"
     },
     {
+      "source": "/admin",
+      "destination": "/public/admin.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/public/$1"
     }
