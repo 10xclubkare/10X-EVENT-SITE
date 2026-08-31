@@ -136,50 +136,103 @@
       qrImg.onload = function () {
         // -------------------------------------------------------
         // QR Code — fitted precisely to the bordered QR placeholder
-        // Template analysis: stub at 72.8%, QR box at 74%-97% x, 17%-69% y
+        // Template (1681×935): QR scanning area box measured at
+        //   x: 73.9%–92.7%, y: 17.6%–69.3%  (with inner quiet-zone padding)
         // -------------------------------------------------------
-        const stubStartX = canvas.width * 0.728;
-        const stubWidth = canvas.width - stubStartX;
-        const qrPad = stubWidth * 0.06;         // small inner margin matching template border
-        const qrSize = stubWidth - (qrPad * 2);  // fill the QR box width
-        const qrX = stubStartX + qrPad;
-        const qrY = canvas.height * 0.175;    // top of QR placeholder (~17.5%)
+        const stubStartX  = canvas.width  * 0.728;   // perforated divider line
+        const stubWidth   = canvas.width  - stubStartX;
+
+        // Inner QR box dimensions measured from template
+        const qrBoxLeft   = canvas.width  * 0.742;   // left edge of QR frame
+        const qrBoxTop    = canvas.height * 0.176;   // top  edge of QR frame
+        const qrBoxRight  = canvas.width  * 0.929;   // right edge of QR frame
+        const qrBoxBottom = canvas.height * 0.693;   // bottom edge of QR frame
+        const qrBoxW      = qrBoxRight  - qrBoxLeft;
+        const qrBoxH      = qrBoxBottom - qrBoxTop;
+        const qrInnerPad  = Math.min(qrBoxW, qrBoxH) * 0.05; // ~5% inset for quiet zone
+        const qrSize      = Math.min(qrBoxW, qrBoxH) - qrInnerPad * 2;
+        const qrX         = qrBoxLeft + (qrBoxW - qrSize) / 2;
+        const qrY         = qrBoxTop  + (qrBoxH - qrSize) / 2;
         ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
         // -------------------------------------------------------
-        // TEAM NAME — bottom-left section of main ticket body
-        // Template: "[TEAM NAME]" placeholder at ~x=7%, y=83%
+        // Helper: auto-scale font so text fits within maxW px
         // -------------------------------------------------------
+        function fitText(text, maxFontPx, minFontPx, maxW, fontFamily) {
+          let size = maxFontPx;
+          ctx.font = `bold ${size}px ${fontFamily}`;
+          while (ctx.measureText(text).width > maxW && size > minFontPx) {
+            size -= 1;
+            ctx.font = `bold ${size}px ${fontFamily}`;
+          }
+          return size;
+        }
+
+        const monoFont = '"Courier New", monospace';
+        ctx.fillStyle    = '#FFD700';
+        ctx.shadowColor  = 'rgba(255, 215, 0, 0.35)';
+        ctx.shadowBlur   = 8;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+
         const teamNameText = teamData.teamName.toUpperCase();
-        const txnIdText = (teamData.txnId || '').substring(0, 12).toUpperCase();
-
-        ctx.fillStyle = '#FFD700';   // Golden
-        ctx.font = `bold ${canvas.height * 0.048}px "Courier New", monospace`;
-        ctx.textAlign = 'left';
-        ctx.shadowColor = 'rgba(255, 215, 0, 0.35)';
-        ctx.shadowBlur = 8;
-
-        ctx.fillText(teamNameText, canvas.width * 0.07, canvas.height * 0.795);
+        const txnIdText    = (teamData.txnId || '').substring(0, 12).toUpperCase();
 
         // -------------------------------------------------------
-        // TEAM ID — bottom-right section of main ticket body
-        // Template: "[TEAM ID]" placeholder at ~x=44%, y=79.5%
+        // TEAM NAME — measured box: x 4.5%–24.7%, y 84.7%–93.4%
         // -------------------------------------------------------
-        ctx.fillText(txnIdText, canvas.width * 0.445, canvas.height * 0.795);
+        const tnBoxL  = canvas.width  * 0.045;
+        const tnBoxR  = canvas.width  * 0.247;
+        const tnBoxMX = (tnBoxL + tnBoxR) / 2;
+        const tnBoxT  = canvas.height * 0.847;
+        const tnBoxB  = canvas.height * 0.934;
+        const tnBoxMY = (tnBoxT + tnBoxB) / 2;
+        const tnMaxW  = (tnBoxR - tnBoxL) * 0.90;   // 90% of box width
+        const tnMaxPx = canvas.height * 0.052;
+        const tnMinPx = canvas.height * 0.020;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(tnBoxL, tnBoxT, tnBoxR - tnBoxL, tnBoxB - tnBoxT);
+        ctx.clip();
+        fitText(teamNameText, tnMaxPx, tnMinPx, tnMaxW, monoFont);
+        ctx.fillText(teamNameText, tnBoxMX, tnBoxMY);
+        ctx.restore();
 
         // -------------------------------------------------------
-        // SIDE STUB — smaller Team ID text below QR
-        // Template shows "TEAM ID: [val]" at ~x=77%, y=81%
+        // TEAM ID — measured box: x 32.0%–57.3%, y 84.7%–93.4%
         // -------------------------------------------------------
-        // Side stub — clip to stub region to prevent overflow
+        const tiBoxL  = canvas.width  * 0.320;
+        const tiBoxR  = canvas.width  * 0.573;
+        const tiBoxMX = (tiBoxL + tiBoxR) / 2;
+        const tiBoxT  = canvas.height * 0.847;
+        const tiBoxB  = canvas.height * 0.934;
+        const tiBoxMY = (tiBoxT + tiBoxB) / 2;
+        const tiMaxW  = (tiBoxR - tiBoxL) * 0.90;
+        const tiMaxPx = canvas.height * 0.052;
+        const tiMinPx = canvas.height * 0.020;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(tiBoxL, tiBoxT, tiBoxR - tiBoxL, tiBoxB - tiBoxT);
+        ctx.clip();
+        fitText(txnIdText, tiMaxPx, tiMinPx, tiMaxW, monoFont);
+        ctx.fillText(txnIdText, tiBoxMX, tiBoxMY);
+        ctx.restore();
+
+        // -------------------------------------------------------
+        // SIDE STUB — smaller Team ID below QR, clipped to stub
+        // -------------------------------------------------------
         ctx.save();
         ctx.beginPath();
         ctx.rect(stubStartX, 0, stubWidth, canvas.height);
         ctx.clip();
 
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = '#FFD700';
-        ctx.font = `bold ${canvas.height * 0.028}px "Courier New", monospace`;
+        ctx.shadowBlur   = 0;
+        ctx.fillStyle    = '#FFD700';
+        ctx.textAlign    = 'left';
+        ctx.textBaseline = 'alphabetic';
+        ctx.font = `bold ${canvas.height * 0.028}px ${monoFont}`;
         ctx.fillText(txnIdText, stubStartX + stubWidth * 0.06, canvas.height * 0.845);
 
         ctx.restore();
